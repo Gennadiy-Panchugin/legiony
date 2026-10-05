@@ -10,6 +10,8 @@ const sndStart = cas.indexOf('const SND = (() => {'), SND = cas.slice(sndStart, 
 const boosts = between(cas, 'const BOOST = {', 'const REFILL');
 const portraits = between(cas, 'function emblem(g, k, cx, cy, z, col) {', 'function paintRail() {').replace(/\bbanner\(/g, 'cbanner(');
 const war = fs.readFileSync(path.join(__dirname, 'war.js'), 'utf8');
+const rosterData = fs.readFileSync(path.join(__dirname, 'roster-data.js'), 'utf8'), rosterEngine = fs.readFileSync(path.join(__dirname, 'roster-engine.js'), 'utf8');
+const unitsSrc = fs.readFileSync(path.join('..', 'toon2d', 'units.js'), 'utf8'), unitsArt = between(unitsSrc, '// ---------------------------------------------------------------- the new soldiers', '// ---------------------------------------------------------------- shared phone chrome');
 const html = `<title>Переправа</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,6 +92,9 @@ ${classes}
 ${SND}
 ${boosts}
 ${portraits}
+${rosterData}
+${rosterEngine}
+${unitsArt}
 ${war}
 </script>
 `;

@@ -16,6 +16,7 @@ const ROADS = [[[450, 1500], [450, 1300], [440, 1150], [450, 1040], [450, 900], 
   [[420, 1360], [300, 1250], [190, 1120], [150, 1004]], [[150, 886], [120, 840], [80, 812]], [[150, 886], [200, 850], [226, 812]], [[480, 1360], [620, 1250], [740, 1160], [770, 1000]], [[770, 890], [740, 840], [720, 816]]];
 const HOUSES = [[690, 1150], [760, 1220], [640, 1240], [230, 1180]];
 const CAMP = { x: 450, y: 1400, rx: 160, ry: 72 }, TENTS = [[360, 1440], [540, 1440], [450, 1466]];
+const FOREST = [[42, 1130, 46, 150], [862, 1150, 44, 150], [572, 1214, 48, 40], [298, 1248, 50, 40], [96, 540, 64, 40], [842, 566, 52, 42], [326, 864, 34, 22], [604, 864, 34, 22], [92, 240, 72, 96], [792, 220, 72, 104], [230, 150, 50, 40], [680, 140, 50, 40]];
 const OB = { x: 450, y: 464, stand: [450, 502], open: false, prog: 0, need: 6 };
 const BR = { x: 150, y0: 886, y1: 1000, stand: [150, 1024], open: false, prog: 0, need: 10 };
 function riverPoly() { const top = [], bot = []; for (let x = 0; x <= WW; x += 90) top.push([x, 900 + (x / 90 % 2 ? -10 : 4)]); for (let x = WW; x >= 0; x -= 90) bot.push([x, 990 + (x / 90 % 2 ? -8 : 6)]); return top.concat(bot); }
@@ -85,6 +86,7 @@ function findPath(x0, y0, x1, y1, side) {
 // ---------------------------------------------------------------- squads and the battle
 const SLOW = 0.25, MELEE = 58, REFILL = 3.5, SPD = 1.5, RNG = 0.85;
 let G, uid = 0, started = false, GSPEED = 1;
+const inForest = s => FOREST.some(([x, y, rx, ry]) => ((s.x - x) / (rx + 6)) ** 2 + ((s.y - y) / (ry + 6)) ** 2 < 1);
 const inCamp = s => ((s.x - CAMP.x) / CAMP.rx) ** 2 + ((s.y - CAMP.y) / CAMP.ry) ** 2 < 1;
 const alive = side => G.sq.filter(s => s.alive && (!side || s.side === side));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -102,7 +104,7 @@ function addSq(side, cls, x, y, ai, zone, patrol, n) {
 }
 function newBattle() {
   OB.open = false; OB.prog = 0; BR.open = false; BR.prog = 0;
-  G = { t: 0, over: false, sq: [], sel: null, fx: [], volleys: [], rome: [], kills: 0, lost: 0, alarm: {}, reserve: 10, parts: [], warn: [], traps: [], rains: [], tgt: null, points: POINTS.map(p => ({ ...p, owner: 2, prog: 0 })) };
+  G = { t: 0, over: false, sq: [], sel: null, fx: [], volleys: [], rome: [], kills: 0, lost: 0, alarm: {}, reserve: 10, parts: [], warn: [], traps: [], rains: [], fires: [], bolts: [], reveal: null, tgt: null, points: POINTS.map(p => ({ ...p, owner: 2, prog: 0 })) };
   initDecals();
   slots.forEach((cls, i) => { const s = addSq(1, cls, STARTS[i][0], STARTS[i][1], 'player'); s.name = GEN[i]; G.rome.push(s); });
   for (const [cls, n, x, y, zone, patrol] of ENEMIES) addSq(2, cls, x, y, 'hold', zone, patrol, n);
@@ -133,10 +135,21 @@ function useBoost(s, idx, quiet, tx, ty) {
     if (tx === undefined) return false;
     if (Math.hypot(tx - s.x, ty - s.y) > d.range) { if (!quiet) say('Слишком далеко для «' + d.name + '»'); return false; }
     if (b.id === 'trap') { if (!pass(cellOf(tx, ty), 1)) { if (!quiet) say('Сюда ловушку не поставить'); return false; } G.traps.push({ x: tx, y: ty, t: 90 }); SND.play('tool', tx); }
+    else if (b.id === 'stun') { const e = G.sq.filter(q => q.alive && q.side === 2 && !q.hiddenA).sort((p, q) => Math.hypot(p.x - tx, p.y - ty) - Math.hypot(q.x - tx, q.y - ty))[0];
+      if (!e || Math.hypot(e.x - tx, e.y - ty) > 80) { if (!quiet) say('Коснитесь вражеского отряда'); return false; }
+      e.stunT = 3; e.path = []; e.atk = null; G.volleys.push({ x: s.x, y: s.y - 20, tx: e.x, ty: e.y - 14, t: 0, side: 1 }); G.warn.push({ x: e.x, y: e.y, t: 1 }); SND.play('crash', e.x); }
+    else if (b.id === 'fire') { G.fires.push({ x: tx, y: ty, t: 0, dur: 6, r: 64 }); SND.play('volley', tx); }
+    else if (b.id === 'pierce') { const L = Math.hypot(tx - s.x, ty - s.y) || 1, ux = (tx - s.x) / L, uy = (ty - s.y) / L, ex = s.x + ux * d.range, ey = s.y + uy * d.range;
+      const hit = G.sq.filter(q => q.alive && q.side === 2 && !q.hiddenA).map(q => { const k = (q.x - s.x) * ux + (q.y - s.y) * uy; return { q, k, off: Math.abs((q.x - s.x) * uy - (q.y - s.y) * ux) }; }).filter(h => h.k > 0 && h.k < d.range && h.off < 34).sort((p, q) => p.k - q.k).slice(0, 4);
+      for (const h of hit) { h.q.pend += 1.6; h.q.hurt = 0.4; bleed(h.q); raise(h.q.zone, h.q, 14); } G.bolts.push({ x0: s.x, y0: s.y - 24, x1: ex, y1: ey - 24, t: 0 }); SND.play('crash', s.x); }
     else { G.rains.push({ x: tx, y: ty, t: 0, dur: 3, r: 72 }); SND.play('volley', tx); }
   } else {
     if (b.id === 'wedge') { s.wedgeT = d.dur; s.wedged = false; if (s.cls === 'eques') s.travel = 999; SND.play('wedge', s.x); }
-    else { s.sk = d.dur; if (b.id === 'gallop') s.travel = 999; SND.play({ turtle: 'shield', volley: 'volley', gallop: 'gallop', rush: 'rush' }[b.id], s.x); }
+    else if (b.id === 'pila') { const e = G.sq.filter(q => q.alive && q.side === 2 && !q.hiddenA && dist(q, s) < 150).sort((p, q) => dist(p, s) - dist(q, s))[0];
+      if (!e) { if (!quiet) say('Пилумы летят на 150 шагов — подойдите ближе'); return false; }
+      e.pend += s.n * 0.22; e.sk = 0; e.hurt = 0.4; for (let i = 0; i < 3; i++) G.volleys.push({ x: s.x + (i - 1) * 12, y: s.y - 20, tx: e.x, ty: e.y - 14, t: -i * 0.1, side: 1 }); SND.play('volley', s.x); }
+    else if (b.id === 'scout') { G.reveal = { x: s.x, y: s.y, r: 260, t: d.dur }; s.sk = d.dur; SND.play('gallop', s.x); }
+    else { s.sk = d.dur; if (b.id === 'gallop') s.travel = 999; if (b.id === 'hedge') s.path = []; SND.play({ turtle: 'shield', volley: 'volley', gallop: 'gallop', rush: 'rush', close: 'shield', hedge: 'shield' }[b.id] || 'order', s.x); }
   }
   b.cd = d.cd; if (b.left !== Infinity) b.left--; G.fx.push({ x: s.x, y: s.y, t: 0.6, big: true });
   if (!quiet) say('«' + d.name + '»: ' + d.text); return true;
@@ -198,10 +211,12 @@ function step(raw) {
   for (const s of live) {
     if (s.sk > 0) s.sk = Math.max(0, s.sk - dt);
     for (const b of s.boosts) if (b.cd > 0) b.cd = Math.max(0, b.cd - dt);
-    if (s.hurt > 0) s.hurt -= dt; if (s.wedgeT > 0) s.wedgeT -= dt; if (s.slowT > 0) s.slowT -= dt;
+    if (s.hurt > 0) s.hurt -= dt; if (s.wedgeT > 0) s.wedgeT -= dt; if (s.slowT > 0) s.slowT -= dt; if (s.stunT > 0) s.stunT -= dt; if (s.firstT > 0) s.firstT -= dt;
+    s.stillT = s.moving ? 0 : (s.stillT || 0) + dt;
     if (s.side === 2) { think(s, dt); pursue(s, dt); } else if (s.atk) pursue(s, dt);
   }
   for (const s of live) {
+    if (s.stunT > 0 || s.cls === 'triarii' && s.sk > 0) { s.moving = false; continue; }
     s.moving = s.path.length > 0; if (!s.moving) continue;
     const [tx, ty] = s.path[0], dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy);
     const sp = s.speed / MULc(cellOf(s.x, s.y)) * (s.sk > 0 && s.cls === 'hastati' ? 0.5 : 1) * (s.sk > 0 && s.cls === 'eques' ? 1.8 : 1) * (s.wedgeT > 0 ? 1.35 : 1) * (s.slowT > 0 ? 0.4 : 1);
@@ -223,19 +238,29 @@ function step(raw) {
     if (site.prog >= site.need) { site.open = true; s.work = null; SND.play('crash', s.x); G.fx.push({ x: s.x, y: s.y - 30, t: 0.8, big: true }); say(site === OB ? 'Баррикада разобрана, перевал открыт' : 'Мост построен! Можно перейти реку у левого хребта'); if (G.sel) paintOverlay(G.sel); }
   }
   G.volleys = G.volleys.filter(v => (v.t += dt * 2.2) < 1);
+  if (G.reveal && (G.reveal.t -= dt) <= 0) G.reveal = null;
+  for (const s of live) if (CLS[s.cls].first) { if (!s.revealed && (G.reveal && Math.hypot(s.x - G.reveal.x, s.y - G.reveal.y) < G.reveal.r || G.fires.some(f => Math.hypot(s.x - f.x, s.y - f.y) < f.r + 30))) s.revealed = true; s.hiddenA = !s.revealed && inForest(s); }
   for (const a of live) {
-    a.fighting = false; if (a.moving || a.work) continue;
+    a.fighting = false; if (a.moving || a.work || a.stunT > 0 || CLS[a.cls].deploy && a.stillT < CLS[a.cls].deploy) continue;
     let t = null, bd = 1e9;
-    for (const e of live) { if (e.side === a.side) continue; const d = dist(a, e), R = a.range ? a.range * (hAt(a.x, a.y) > hAt(e.x, e.y) + 0.08 ? 1.35 : 1) : MELEE; if (d > R || d >= bd) continue; bd = d; t = e; }
+    for (const e of live) { if (e.side === a.side || e.hiddenA) continue; const d = dist(a, e), R = a.range ? a.range * (hAt(a.x, a.y) > hAt(e.x, e.y) + 0.08 ? 1.35 : 1) : MELEE; if (d > R || d >= bd) continue; bd = d; t = e; }
     if (!t) continue;
     a.fighting = true; a.face = t.x < a.x - 1 ? -1 : t.x > a.x + 1 ? 1 : a.face;
+    if (CLS[a.cls].first && !a.revealed) { a.revealed = true; a.hiddenA = false; a.firstT = 2; G.warn.push({ x: a.x, y: a.y, t: 2.5 }); say('Засада!'); }
     let v = a.n * a.k * MULT[a.kind][t.kind] * dt; const ranged = a.range > 0;
     if (a.sk > 0 && a.cls === 'velites') v *= 2.5;
     if (t.sk > 0 && t.cls === 'hastati') v *= ranged ? 0.35 : 0.85;
     if (!ranged && hAt(t.x, t.y) > hAt(a.x, a.y) + 0.08) v *= 0.8;
     if (hAt(t.x, t.y) < WATERH) v *= 1.25;
-    if ((a.cls === 'eques' || a.cls === 'e_cav') && a.travel >= 90) { v += 0.8 * a.n * MULT[CAV][t.kind] * (a.sk > 0 ? 1.4 : 1) * (a.wedgeT > 0 ? 1.5 : 1); a.travel = 0; SND.play('charge', a.x); G.fx.push({ x: (a.x + t.x) / 2, y: (a.y + t.y) / 2, t: 0.5, big: true }); }
+    if (a.kind === CAV && a.travel >= 90) { v += 0.8 * a.n * MULT[CAV][t.kind] * (a.sk > 0 ? 1.4 : 1) * (a.wedgeT > 0 ? 1.5 : 1); a.travel = 0; SND.play('charge', a.x); G.fx.push({ x: (a.x + t.x) / 2, y: (a.y + t.y) / 2, t: 0.5, big: true }); }
     if (!ranged && a.wedgeT > 0 && !a.wedged && a.cls !== 'eques') { a.wedged = true; v += 0.5 * a.n * MULT[a.kind][t.kind]; SND.play('charge', a.x); G.fx.push({ x: (a.x + t.x) / 2, y: (a.y + t.y) / 2, t: 0.5, big: true }); }
+    const da = CLS[a.cls], dt2 = CLS[t.cls];
+    if (da.weakNear && bd < MELEE) v *= da.weakNear;
+    if (da.vsCav && t.kind === CAV) v *= da.vsCav * (a.sk > 0 ? 1.45 : 1);
+    if (a.firstT > 0) v *= da.first || 1;
+    v *= dt2.def || 1; if (t.cls === 'tiro' && t.sk > 0) v *= 0.75;
+    if (t.cls === 'triarii' && t.sk > 0 && a.kind === CAV) { v *= 0.3; a.slowT = 2; a.travel = 0; }
+    if (dt2.front) { const fx = t.atk ? t.atk.x - t.x : 0, fy = t.atk ? t.atk.y - t.y : 1, fl = Math.hypot(fx, fy) || 1, ax = a.x - t.x, ay = a.y - t.y, al = Math.hypot(ax, ay) || 1; v *= (fx * ax + fy * ay) / fl / al > 0.5 ? dt2.front : 1.3; }
     t.pend += v; t.hurt = 0.25; if (t.side === 2) raise(t.zone, t, 14);
     a.clash -= dt; if (a.clash <= 0) { a.clash = ranged ? 0.5 : 0.35; bleed(t); SND.hit(a); if (ranged) G.volleys.push({ x: a.x, y: a.y - 20, tx: t.x, ty: t.y - 14, t: 0, side: a.side }); else G.fx.push({ x: (a.x + t.x) / 2 + (Math.random() - .5) * 16, y: (a.y + t.y) / 2 - 10, t: 0.3 }); }
   }
@@ -248,6 +273,8 @@ function step(raw) {
   G.traps = G.traps.filter(t => t.t > 0);
   for (const rn of G.rains) { rn.t += dt; for (const e of live) if (e.side === 2 && e.alive && Math.hypot(e.x - rn.x, e.y - rn.y) < rn.r) { e.pend += 0.55 * dt; e.hurt = 0.25; raise(e.zone, e, 14); } if (Math.random() < dt * 6) SND.play('arrow', rn.x); }
   G.rains = G.rains.filter(r => r.t < r.dur);
+  for (const f of G.fires) { f.t += dt; for (const e of live) if (e.side === 2 && Math.hypot(e.x - f.x, e.y - f.y) < f.r) { e.pend += 0.7 * dt; e.hurt = 0.25; raise(e.zone, e, 14); } } G.fires = G.fires.filter(f => f.t < f.dur);
+  for (const b of G.bolts) b.t += dt * 3; G.bolts = G.bolts.filter(b => b.t < 1);
   for (const f of G.fx) f.t -= dt; G.fx = G.fx.filter(f => f.t > 0);
   for (const w of G.warn) w.t -= dt; G.warn = G.warn.filter(w => w.t > 0);
   for (const p of G.parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 190 * dt; } G.parts = G.parts.filter(p => p.t > 0);
@@ -262,6 +289,9 @@ function die(s) {
   if (s.side === 1) { G.lost++; say('Генерал ' + s.name + ' ранен, отряд выбыл из боя'); } else G.kills++;
 }
 const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const EMBED = window.name === 'legwar';
+if (EMBED) { addEventListener('message', e => { const m = e.data; if (e.source === parent && m && m.legWar === 'init' && Array.isArray(m.slots)) { slots = m.slots.slice(0, 4).map(c => CLS[c] ? c : 'tiro'); renderSlots(); newBattle(); } }); setTimeout(() => parent.postMessage({ legWar: 'ready' }, '*'), 0); }
+function report(win, surrendered) { parent.postMessage({ legWar: 'end', win, surrendered: !!surrendered, t: G.t, kills: G.kills, lost: G.lost, flags: G.points.filter(p => p.owner === 1).length }, '*'); }
 function checkEnd() {
   let win = 0, why = '';
   if (G.points[2].owner === 1) { win = 1; why = 'Форт взят, над переправой орёл легиона.'; }
@@ -316,13 +346,17 @@ function bake() {
 
 // ---------------------------------------------------------------- drawing
 function drawSquad(s, t) {
+  if (s.hiddenA) return;
   const n = Math.ceil(s.n), pts = []; for (let i = 0; i < n; i++) pts.push(fposT(n, i)); pts.sort((a, b) => a[1] - b[1]);
-  ctx.save(); if (s.inTent) ctx.globalAlpha = 0.7;
+  ctx.save(); if (s.inTent) ctx.globalAlpha = 0.7; const shade = inForest(s); if (shade) { ctx.filter = 'brightness(0.5) saturate(0.7)'; ctx.globalAlpha *= 0.9; }
   if (G.sel === s) { ctx.beginPath(); ctx.ellipse(s.x, s.y + 4, 44, 20, 0, 0, 7); ctx.strokeStyle = OL; ctx.lineWidth = 7; ctx.stroke(); ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 4; ctx.stroke(); }
   if (s.sk > 0 || s.wedgeT > 0) { ctx.beginPath(); ctx.ellipse(s.x, s.y + 4, 40, 18, 0, 0, 7); ctx.strokeStyle = 'rgba(255,230,120,.9)'; ctx.lineWidth = 3; ctx.stroke(); }
-  pts.forEach(([ox, oy], i) => { const bob = s.moving ? Math.abs(Math.sin(t * 12 + i * 1.7)) * 3 : s.fighting ? Math.sin(t * 18 + i) * 1.2 : 0; chibi(ctx, s.x + ox, s.y + oy - bob, s.cls, s.side, 0.6, s.face); });
+  pts.forEach(([ox, oy], i) => { const bob = s.moving ? Math.abs(Math.sin(t * 12 + i * 1.7)) * 3 : s.fighting ? Math.sin(t * 18 + i) * 1.2 : 0; unit(ctx, s.x + ox, s.y + oy - bob, s.cls, s.side, 0.6, s.face); });
+  if (s.side === 2) typeIcon(ctx, s.x - s.face * 34, s.y - 42, 9, TREE_KIND[s.cls] || 'INF', true);
+  if (s.stunT > 0) { ctx.font = '900 20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💫', s.x, s.y - 58 + Math.sin(t * 8) * 3); }
   const st = BAN[s.cls] || BAN.e_inf; ctx.save(); ctx.translate(s.x - s.face * 34, s.y + 12); ctx.scale(1.2, 1.2); cbanner(ctx, 0, 0, st, 1, Math.sin(t * 5 + s.id) * 1.6); ctx.restore();
   if (s.hurt > 0) { ctx.beginPath(); ctx.ellipse(s.x, s.y - 14, 40, 30, 0, 0, 7); ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(0.8, s.hurt * 4) + ')'; ctx.lineWidth = 3; ctx.stroke(); }
+  if (shade) { ctx.filter = 'none'; ctx.globalAlpha = 1; }
   const f = s.n / s.max; rr(ctx, s.x - 21, s.y + 16, 42, 7, 3.5); ctx.fillStyle = OL; ctx.fill(); rr(ctx, s.x - 19.5, s.y + 17.5, 39 * Math.max(0, f), 4, 2); ctx.fillStyle = f > 0.5 ? '#7ee05a' : f > 0.25 ? '#ffcc33' : '#ff5a4a'; ctx.fill();
   if (s.refT > 0) { ctx.beginPath(); ctx.arc(s.x, s.y - 16, 38, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * s.refT / REFILL); ctx.strokeStyle = '#7ee05a'; ctx.lineWidth = 5; ctx.stroke(); }
   if (s.work && !s.path.length) { ctx.font = '900 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe6a8'; ctx.fillText('🔨', s.x + 18, s.y - 44 + Math.abs(Math.sin(t * 8)) * -6); }
@@ -351,6 +385,10 @@ function draw(t) {
     ctx.save(); ctx.setLineDash([2, 12]); ctx.lineCap = 'round'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.lineDashOffset = -t * 20; ctx.beginPath(); ctx.moveTo(s.x, s.y); for (const [x, y] of s.path) ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
     const e = s.path[s.path.length - 1]; ctx.beginPath(); ctx.ellipse(e[0], e[1], 20, 10, 0, 0, 7); ctx.strokeStyle = OL; ctx.lineWidth = 5; ctx.stroke(); ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 3; ctx.stroke();
   }
+  for (const f of G.fires) { const k = 1 - f.t / f.dur; ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.55, 0, 0, 7); ctx.fillStyle = 'rgba(255,120,30,' + (0.25 * k + 0.1) + ')'; ctx.fill();
+    for (let i = 0; i < 7; i++) { const a = i * 0.9 + f.t, x = f.x + Math.cos(a) * f.r * 0.55, y = f.y + Math.sin(a) * f.r * 0.3, h = 16 + 8 * Math.sin(t * 9 + i); ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.quadraticCurveTo(x - 7, y - h * 0.6, x, y - h); ctx.quadraticCurveTo(x + 7, y - h * 0.6, x + 6, y); ctx.closePath(); fo(ctx, '#ffb030', 1.6); } }
+  for (const b of G.bolts) { ctx.strokeStyle = 'rgba(255,240,200,' + (1 - b.t) + ')'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(b.x0, b.y0); ctx.lineTo(b.x0 + (b.x1 - b.x0) * Math.min(1, b.t * 2), b.y0 + (b.y1 - b.y0) * Math.min(1, b.t * 2)); ctx.stroke(); }
+  if (G.reveal) { ctx.save(); ctx.setLineDash([10, 8]); ctx.beginPath(); ctx.ellipse(G.reveal.x, G.reveal.y, G.reveal.r, G.reveal.r * 0.6, 0, 0, 7); ctx.strokeStyle = 'rgba(180,230,255,.8)'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore(); }
   for (const rn of G.rains) { ctx.beginPath(); ctx.ellipse(rn.x, rn.y, rn.r, rn.r * 0.55, 0, 0, 7); ctx.fillStyle = 'rgba(226,56,44,.16)'; ctx.fill(); ctx.strokeStyle = 'rgba(226,56,44,.8)'; ctx.lineWidth = 3; ctx.stroke(); ctx.strokeStyle = OL; ctx.lineWidth = 2;
     for (let i = 0; i < 16; i++) { const a = i * 2.39996 + rn.t, rr0 = rn.r * Math.sqrt((i + 0.5) / 16), x = rn.x + Math.cos(a) * rr0, y = rn.y + Math.sin(a) * rr0 * 0.55, f = ((t * 3 + i * 0.37) % 1); ctx.beginPath(); ctx.moveTo(x - 2, y - 56 * (1 - f) - 10); ctx.lineTo(x, y - 56 * (1 - f)); ctx.stroke(); } }
   for (const tr of G.traps) { ctx.beginPath(); ctx.ellipse(tr.x, tr.y, 20, 9, 0, 0, 7); fo(ctx, '#4a2a14', 2.2); for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(tr.x + i * 7 - 3, tr.y + 2); ctx.lineTo(tr.x + i * 7, tr.y - 12); ctx.lineTo(tr.x + i * 7 + 3, tr.y + 2); ctx.closePath(); fo(ctx, '#e6ebf0', 1.6); } }
@@ -358,6 +396,7 @@ function draw(t) {
   for (const s of G.sq) if (s.alive) items.push({ y: s.y, f: () => drawSquad(s, t) });
   for (const p of G.points) items.push({ y: p.y - 70, f: () => { flag(ctx, p.x + (p.final ? 0 : 36), p.y - (p.final ? 210 : 130), p.owner === 1 ? '#e2382c' : '#3f7ae0', 40); } });
   items.sort((a, b) => a.y - b.y); for (const it of items) it.f();
+  if (G.sel && G.sel.alive) for (const e of G.sq) if (e.alive && e.side === 2 && !e.hiddenA) { const v = verdict(G.sel.cls, e.cls); if (v) mark(ctx, e.x, e.y - 76, v > 0, 11); }
   for (const p of G.points) { ctx.font = '900 15px "Lilita One", sans-serif'; ctx.textAlign = 'center'; const tw = ctx.measureText(p.name).width + 18; rr(ctx, p.x - tw / 2, p.y + p.r * 0.42, tw, 24, 12); ctx.fillStyle = 'rgba(40,24,14,.9)'; ctx.fill(); ctx.strokeStyle = p.owner === 1 ? '#ff7a6a' : '#f2c14a'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = p.owner === 1 ? '#ffb0a6' : '#ffe6a8'; ctx.fillText(p.name, p.x, p.y + p.r * 0.42 + 17); }
   if (alive(1).some(q => q.n < q.max) && G.reserve > 0) for (const [x, y] of TENTS) { const k = 0.85 + 0.15 * Math.sin(t * 6); ctx.beginPath(); ctx.arc(x + 30, y - 46, 12 * k, 0, 7); fo(ctx, '#3fbf4a', 2.4); ctx.fillStyle = '#fff'; ctx.fillRect(x + 25, y - 48, 10, 4); ctx.fillRect(x + 28, y - 51, 4, 10); }
   ctx.font = '900 15px "Lilita One", sans-serif'; ctx.textAlign = 'center'; { const txt = 'Наш лагерь · резерв ' + G.reserve, tw = ctx.measureText(txt).width + 18; rr(ctx, CAMP.x - tw / 2, CAMP.y + CAMP.ry - 4, tw, 24, 12); ctx.fillStyle = 'rgba(40,24,14,.9)'; ctx.fill(); ctx.fillStyle = '#ffb0a6'; ctx.fillText(txt, CAMP.x, CAMP.y + CAMP.ry + 13); }
@@ -372,7 +411,7 @@ function draw(t) {
 
 // ---------------------------------------------------------------- the interface
 let railPainted = null, boostSel = null;
-function paintRail() { G.rome.forEach((s, i) => { const g = $('rbc' + i).getContext('2d'); g.clearRect(0, 0, 64, 64); portrait(g, i, s.cls); }); }
+function paintRail() { G.rome.forEach((s, i) => { const g = $('rbc' + i).getContext('2d'); g.clearRect(0, 0, 64, 64); portrait(g, i, s.cls); typeIcon(g, 52, 52, 9, TREE_KIND[s.cls] || 'INF'); }); }
 function hud() {
   const caps = G.points.filter(p => p.owner === 1).length, foes = G.sq.filter(s => s.alive && s.side === 2).length;
   $('clock').textContent = clock(G.t); $('cFlags').textContent = '⚑ ' + caps + '/3'; $('cFoes').textContent = '⚔ ' + foes; $('cRes').textContent = '+ ' + G.reserve;
@@ -440,12 +479,14 @@ $('mini').addEventListener('pointerdown', e => { e.stopPropagation(); const r = 
 function easeCam() { if (cam.fx === undefined) return; cam.x += (cam.fx - cam.x) * 0.15; cam.y += (cam.fy - cam.y) * 0.15; clampCam(); if (Math.hypot(cam.fx - cam.x, cam.fy - cam.y) < 3) cam.fx = undefined; }
 for (let i = 0; i < 4; i++) $('rb' + i).addEventListener('click', () => { if (G.over || !started) return; const s = G.rome[i]; if (!s.alive) { say('Генерал ' + s.name + ' ранен'); return; } select(s); cam.fx = s.x; cam.fy = s.y - 80; uiCards(); });
 $('fast').addEventListener('click', () => { GSPEED = GSPEED >= 3 ? 1 : GSPEED + 1; $('fast').innerHTML = '⏩<small>×' + GSPEED + '</small>'; $('fast').classList.toggle('on', GSPEED > 1); SND.play('select'); });
-$('restart').addEventListener('click', () => restart()); $('ovB').addEventListener('click', () => restart());
+$('restart').addEventListener('click', () => { if (!EMBED) return restart(); if (G.over) return; const now = Date.now(); if (now - (window._ret || 0) < 3000) { G.over = true; report(2, true); } else { window._ret = now; say('Нажмите ⚑ ещё раз, чтобы отступить'); } });
+$('ovB').addEventListener('click', () => EMBED ? (G.winner && report(G.winner)) : restart());
+if (EMBED) { $('restart').textContent = '⚑'; $('restart').title = 'Отступить'; $('restart').setAttribute('aria-label', 'Отступить'); $('ovB').textContent = 'Дальше'; }
 $('helpOk').addEventListener('click', () => { $('help').hidden = true; started = true; SND.init(); });
 $('mus').addEventListener('click', () => { SND.toggleMusic(); $('mus').classList.toggle('off', !SND.isMus()); });
 $('snd').addEventListener('click', () => { SND.toggleSfx(); $('snd').classList.toggle('off', !SND.isSfx()); });
 document.addEventListener('visibilitychange', () => SND.visible(!document.hidden));
-function renderSlots() { $('slots').innerHTML = slots.map((c, i) => '<button type="button" data-i="' + i + '">' + GEN[i] + ' · ' + CLS[c].name + '<small>' + CLS[c].hint + '</small></button>').join(''); for (const b of $('slots').children) b.addEventListener('click', () => { const i = +b.dataset.i; slots[i] = ORDER[(ORDER.indexOf(slots[i]) + 1) % ORDER.length]; renderSlots(); newBattle(); }); }
+function renderSlots() { $('slots').innerHTML = slots.map((c, i) => '<button type="button" data-i="' + i + '">' + GEN[i] + ' · ' + CLS[c].name + '<small>' + CLS[c].hint + '</small></button>').join(''); for (const b of $('slots').children) b.addEventListener('click', () => { const i = +b.dataset.i; if (EMBED) return; slots[i] = ORDER_ALL[(ORDER_ALL.indexOf(slots[i]) + 1) % ORDER_ALL.length]; renderSlots(); newBattle(); }); }
 function restart() { newBattle(); $('over').hidden = true; $('help').hidden = true; started = true; SND.init(); }
 
 // ---------------------------------------------------------------- loop
