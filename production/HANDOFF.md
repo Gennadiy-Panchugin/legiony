@@ -6,7 +6,7 @@
 ## Аккаунт
 
 - Проект ведётся **только** через личный GitHub **Gennadiy-Panchugin**. Рабочий аккаунт HPanchuhin здесь не используется.
-- Remote `upstream` указывает на шаблон `Donchitos/Claude-Code-Game-Studios`. Пушить туда нельзя.
+- Проект вырос из шаблона `https://github.com/Donchitos/Claude-Code-Game-Studios`. Remote на шаблон удалён, пушить туда нельзя.
 
 ## Правила работы с пользователем
 
