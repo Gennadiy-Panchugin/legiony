@@ -1,0 +1,129 @@
+<title>Арена: макет интерфейса v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Alegreya+Sans:wght@500;700;800;900&display=swap">
+<style>
+  /* the same wooden art board as the other toon2d sheets */
+  :root { --bg: #2a1a10; --ink: #fff3dc; --muted: #e2c9a0; --display: 'Lilita One', 'Alegreya Sans', sans-serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; } body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font: 400 42px var(--display); margin: 0 0 6px; color: #ffe6a8; }
+  p { margin: 0 0 12px; color: var(--muted); max-width: 800px; } b { color: var(--ink); }
+  .row { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 18px; align-items: flex-start; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 8px; width: 300px; }
+  .pic { border-radius: 22px; overflow: hidden; border: 4px solid #1a0e06; line-height: 0; }
+  svg { display: block; width: 100%; height: auto; font-family: var(--display); }
+  figcaption { font-size: 14px; color: var(--muted); } figcaption b { font: 400 18px var(--display); color: #ffe6a8; display: block; }
+  .legend { flex: 1; min-width: 260px; font-size: 15px; color: var(--muted); }
+  .legend h2 { font: 400 24px var(--display); color: #ffe6a8; margin: 0 0 6px; }
+  .legend ul { margin: 0 0 14px; padding-left: 20px; } .legend li { margin-bottom: 4px; }
+  .legend svg { width: 28px; height: 28px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+</style>
+<div class="wrap">
+  <h1>Арена: макет интерфейса</h1>
+  <p>Основа — вариант <b>В «Врата»</b>: маркеры над выходами. К нему верхняя планка из А и строка «Следующая волна» из Б. Исправлено по замечаниям UX: отступы под вырез и home-indicator, кнопки 44×44, текст от 12 px, кольца сдвинуты к краю поля, тип врага — иконкой, «наши» круглые, «враги» щитовые. Шкалы «милости толпы» пока нет. Это арт, в игру не встроено.</p>
+  <div class="row">
+    <figure><div class="pic"><svg id="a" viewBox="0 0 360 640" role="img" aria-label="Бой, волна идёт"></svg></div>
+      <figcaption><b>1 · Волна идёт</b>Планка: волна 3 из 8, сегменты с галочкой и числом, остаток врагов. Над выходами «!» с типом и числом бойцов.</figcaption></figure>
+    <figure><div class="pic"><svg id="b" viewBox="0 0 360 640" role="img" aria-label="Пауза перед волной"></svg></div>
+      <figcaption><b>2 · Пауза перед волной</b>Свиток на 3–4 с: кто выйдет и из каких ворот. Кольца показывают, сколько осталось до выхода.</figcaption></figure>
+    <div class="legend">
+      <h2>Условные знаки</h2>
+      <ul id="leg"></ul>
+      <h2>Размеры</h2>
+      <ul>
+        <li>Верх: HUD с y = 44, под вырез камеры.</li>
+        <li>Низ: карточки до y = 606, 34 над краем под home-indicator.</li>
+        <li>Кнопки ускорения и паузы: 44×44.</li>
+        <li>Весь текст от 12 px; название отряда — в карточке 82 px.</li>
+        <li>Южный выход выше карточек, не перекрыт.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const el = (s, h) => s.insertAdjacentHTML('beforeend', h);
+const RED = '#c0392b', BLUE = '#2e5d8a', GOLD = '#f2c14a', INK = '#2a1a10', PAPER = '#f4e3b8', ALARM = '#ff6a4a';
+const txt = (x, y, t, sz = 14, fill = '#fff3dc', anchor = 'middle') => `<text x="${x}" y="${y}" font-size="${sz}" fill="${fill}" text-anchor="${anchor}" stroke="${INK}" stroke-width="3" paint-order="stroke" style="font-family:'Lilita One',sans-serif">${t}</text>`;
+const box = (x, y, w, h, fill = '#2a1a10', op = .9) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(h / 2, 14)}" fill="${fill}" opacity="${op}" stroke="#fff3dc" stroke-width="1.5"/>`;
+
+// glyph per gladiator type, drawn around (0,0) in a 22px box
+const GLYPH = {
+  thr: c => `<path d="M-7 8 Q-8 -6 5 -9 Q0 -2 2 8 Z" fill="${c}"/>`,                                  // Thracian: curved sica
+  mir: c => `<path d="M-8 -8h16v9q0 8-8 10q-8-2-8-10z" fill="${c}"/>`,                                // Murmillo: big shield
+  ret: c => `<g stroke="${c}" stroke-width="1.8" fill="none"><circle r="8"/><path d="M-8 0h16M0 -8v16M-5.5 -5.5l11 11M5.5 -5.5l-11 11"/></g>`, // Retiarius: net
+  chm: c => `<path d="M0 -10l3 7h8l-6.500 5 2.500 8-7-5-7 5 2.500-8-6.500-5h8z" fill="${c}"/>`,           // champion: star
+};
+const NAMES = { thr: 'Фракиец — быстрый', mir: 'Мирмиллон — тяжёлый щит', ret: 'Ретиарий — сеть замедляет', chm: 'Чемпион — босс' };
+
+function arena(s) {
+  let h = '<rect width="360" height="640" fill="#7a5634"/>';
+  for (let i = 0; i < 4; i++) h += `<ellipse cx="180" cy="320" rx="${178 - i * 8}" ry="${292 - i * 8}" fill="${['#9a6f45','#8a6139','#a4784b','#936a40'][i]}" stroke="#4a2f19" stroke-width="2"/>`;
+  const cols = ['#e8c07a', '#d9553f', '#4f86c6', '#f2e3b3', '#6aa86a'];
+  for (let k = 0; k < 170; k++) { const a = k * 2.399, r = .8 + ((k * 37) % 17) / 90; h += `<circle cx="${(180 + Math.cos(a) * 168 * r).toFixed(1)}" cy="${(320 + Math.sin(a) * 282 * r).toFixed(1)}" r="3" fill="${cols[k % 5]}" opacity=".85"/>`; }
+  h += '<ellipse cx="180" cy="320" rx="126" ry="203" fill="#4a2f19"/><ellipse cx="180" cy="320" rx="118" ry="195" fill="#e3c27e"/>';
+  h += '<ellipse cx="180" cy="320" rx="118" ry="195" fill="none" stroke="#c9a15a" stroke-width="4" stroke-dasharray="3 9"/>';
+  h += '<ellipse cx="150" cy="290" rx="34" ry="14" fill="#d6b06a" opacity=".7"/><ellipse cx="215" cy="380" rx="30" ry="12" fill="#d6b06a" opacity=".7"/>';
+  h += '<g fill="#8f8f8f" stroke="#555" stroke-width="2"><rect x="128" y="338" width="22" height="22" rx="3"/><rect x="214" y="312" width="22" height="22" rx="3"/></g>';
+  const gate = (x, y, w, hh, v) => `<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="5" fill="#2b1a0c" stroke="#7b5a35" stroke-width="3"/><g stroke="#8a8a8a" stroke-width="2">${v ? `<path d="M${x} ${y + 8}h${w}M${x} ${y + hh / 2}h${w}M${x} ${y + hh - 8}h${w}"/>` : `<path d="M${x + 8} ${y}v${hh}M${x + w / 2} ${y}v${hh}M${x + w - 8} ${y}v${hh}"/>`}</g>`;
+  h += gate(148, 118, 64, 22, 0) + gate(148, 500, 64, 22, 0) + gate(62, 290, 22, 60, 1) + gate(276, 290, 22, 60, 1);
+  // ours: round bodies. enemies: shield-shaped body with a crest
+  const ours = (x, y) => `<ellipse cx="${x}" cy="${y + 9}" rx="9" ry="3.500" fill="#000" opacity=".25"/><circle cx="${x}" cy="${y}" r="9" fill="${RED}" stroke="${INK}" stroke-width="2.500"/><circle cx="${x}" cy="${y - 11}" r="3.500" fill="${RED}" stroke="${INK}" stroke-width="1.500"/>`;
+  const foe = (x, y) => `<ellipse cx="${x}" cy="${y + 9}" rx="9" ry="3.500" fill="#000" opacity=".25"/><path d="M${x - 9} ${y - 8}h18v9q0 9-9 11q-9-2-9-11z" fill="${BLUE}" stroke="${INK}" stroke-width="2.500"/><path d="M${x - 4} ${y - 8}l4-7 4 7z" fill="#e8c07a" stroke="${INK}" stroke-width="1.500"/>`;
+  [[150, 430], [170, 442], [190, 430], [210, 442], [160, 460], [200, 462], [142, 404], [220, 410]].forEach(p => h += ours(p[0], p[1]));
+  [[160, 190], [182, 178], [204, 190], [176, 212], [196, 218], [118, 320]].forEach(p => h += foe(p[0], p[1]));
+  el(s, h);
+}
+const card = (x, c, name, hp) => `<g><rect x="${x}" y="540" width="82" height="66" rx="12" fill="#3a2514" stroke="${GOLD}" stroke-width="2"/><circle cx="${x + 41}" cy="563" r="13" fill="${c}" stroke="${INK}" stroke-width="3"/>${txt(x + 41, 591, name, 12)}<rect x="${x + 10}" y="597" width="62" height="5" rx="2.500" fill="#000"/><rect x="${x + 10}" y="597" width="${62 * hp}" height="5" rx="2.500" fill="#6bd16b"/></g>`;
+const cards = () => card(6, RED, 'Принцепсы', .9) + card(94, '#d98f2b', 'Триарии', .7) + card(182, '#7a5aa8', 'Велиты', 1) + card(270, '#2f8a6b', 'Гладиаторы', .5);
+const btn = (x, y, label) => `<g><rect x="${x}" y="${y}" width="44" height="44" rx="12" fill="#2a1a10" opacity=".92" stroke="#fff3dc" stroke-width="2"/>${label}</g>`;
+const speedIcon = x => btn(x, 44, `<path d="M${x + 11} 56l10 10-10 10zM${x + 22} 56l10 10-10 10z" fill="#fff3dc"/>`) + txt(x + 22, 100, '×1', 12);
+const pauseIcon = x => btn(x, 44, `<rect x="${x + 12}" y="56" width="7" height="20" rx="2" fill="#fff3dc"/><rect x="${x + 25}" y="56" width="7" height="20" rx="2" fill="#fff3dc"/>`);
+
+// top bar: wave number, segments with number+tick, enemies left
+function topBar(s, wave, left) {
+  el(s, speedIcon(8) + pauseIcon(308));
+  el(s, box(60, 44, 240, 44));
+  el(s, txt(180, 66, `Волна ${wave} из 8`, 17, GOLD));
+  for (let i = 0; i < 8; i++) {
+    const x = 70 + i * 28, done = i < wave - 1, cur = i === wave - 1;
+    el(s, `<rect x="${x}" y="72" width="24" height="12" rx="4" fill="${done ? '#3d7a3d' : cur ? GOLD : '#5a4630'}" stroke="${cur ? '#fff' : INK}" stroke-width="${cur ? 2 : 1}"/>${txt(x + 12, 82, done ? '✓' : i + 1, 11, cur ? INK : '#fff3dc')}`);
+  }
+  el(s, box(126, 94, 108, 26, '#3a2514') + `<g transform="translate(142 107) scale(.55)">${`<path d="M-9 -8h18v9q0 9-9 11q-9-2-9-11z" fill="${BLUE}" stroke="${INK}" stroke-width="3"/>`}</g>` + txt(196, 112, `Врагов: ${left}`, 13));
+}
+// gate marker: ring + type glyph + count badge (all text >= 12 px)
+function marker(s, x, y, type, n, pct, color, label) {
+  const r = 20, c = 2 * Math.PI * r;
+  el(s, `<g><circle cx="${x}" cy="${y}" r="${r + 4}" fill="#2a1a10" opacity=".93"/><circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#5a4630" stroke-width="5"/>
+    <circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-dasharray="${(c * pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${x} ${y})" stroke-linecap="round"/>
+    <g transform="translate(${x} ${y})">${GLYPH[type](color)}</g>
+    <circle cx="${x + 18}" cy="${y - 18}" r="11" fill="${color}" stroke="${INK}" stroke-width="2"/>${txt(x + 18, y - 13, '!', 15, INK)}
+    <rect x="${x - 20}" y="${y + 24}" width="40" height="20" rx="10" fill="#2a1a10" opacity=".93" stroke="#fff3dc" stroke-width="1.500"/>${txt(x, y + 39, label || ('×' + n), 13)}</g>`);
+}
+
+// frame 1: wave in progress
+(() => {
+  const s = document.getElementById('a'); arena(s); topBar(s, 3, 6);
+  marker(s, 180, 160 - 10, 'mir', 3, .7, ALARM);          // north gate, nudged toward the stands
+  marker(s, 52, 320, 'thr', 2, .45, GOLD);                 // west
+  marker(s, 308, 320, 'ret', 1, .3, GOLD);                 // east
+  el(s, cards());
+})();
+// frame 2: pause with next-wave scroll
+(() => {
+  const s = document.getElementById('b'); arena(s); topBar(s, 3, 0);
+  marker(s, 180, 150, 'mir', 3, .85, ALARM, '0:08');
+  marker(s, 52, 320, 'thr', 2, .6, GOLD, '0:08');
+  marker(s, 308, 320, 'ret', 1, .5, GOLD, '0:08');
+  el(s, `<g><rect x="40" y="228" width="280" height="76" rx="14" fill="${PAPER}" stroke="#7b5a35" stroke-width="3"/><rect x="30" y="224" width="14" height="84" rx="7" fill="#c9a15a" stroke="${INK}" stroke-width="2"/><rect x="316" y="224" width="14" height="84" rx="7" fill="#c9a15a" stroke="${INK}" stroke-width="2"/>
+    <text x="180" y="252" text-anchor="middle" font-size="17" fill="${RED}" style="font-family:'Lilita One',sans-serif">СЛЕДУЮЩАЯ ВОЛНА 4</text>
+    <text x="180" y="276" text-anchor="middle" font-size="14" fill="#5a3a1c" font-weight="900">Чемпион арены ×1 · Мирмиллоны ×3</text>
+    <text x="180" y="295" text-anchor="middle" font-size="12" fill="#5a3a1c" font-weight="800">Выходы: север, запад. Против щитов — принцепсы</text></g>`);
+  el(s, cards());
+})();
+// legend
+document.getElementById('leg').innerHTML = Object.keys(GLYPH).map(k => `<li><svg viewBox="-14 -14 28 28"><circle r="13" fill="#2a1a10"/>${GLYPH[k](GOLD)}</svg>${NAMES[k]}</li>`).join('')
+  + `<li><svg viewBox="-14 -14 28 28"><circle r="9" cx="0" cy="2" fill="${RED}" stroke="${INK}" stroke-width="2.500"/></svg>Наши: круглое тело</li>`
+  + `<li><svg viewBox="-14 -14 28 28"><path d="M-9 -6h18v9q0 9-9 11q-9-2-9-11z" fill="${BLUE}" stroke="${INK}" stroke-width="2.500"/></svg>Враги: щитовое тело с гребнем</li>`
+  + `<li><svg viewBox="-14 -14 28 28"><circle r="12" fill="none" stroke="${ALARM}" stroke-width="4"/></svg>Красное кольцо — самый сильный выход</li>`;
+</script>

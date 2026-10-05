@@ -13,7 +13,9 @@ cityArt = cityArt.slice(cityArt.indexOf('// ------------------------------------
 cityArt = cityArt.replace('const foe = (g, list) => list.forEach(', 'const foe = (g, list) => window.NOART || list.forEach(')
   .replace("g.save(); g.globalAlpha = 0.55; for (const gx of [240, 660]) { tent(g, gx - 34, 780); tent(g, gx + 34, 780); } g.restore();", '');
 const guards = "for (const nm of ['sign', 'num', 'squad', 'capRing', 'rubble', 'bridgeSite', 'raft', 'ours']) { const f = window[nm]; if (f) window[nm] = function () { if (window.NOART) return; return f.apply(this, arguments); }; }\n";
-const spec = fs.readFileSync(path.join(__dirname, 'citymaps-spec.js'), 'utf8'), runtime = fs.readFileSync(path.join(__dirname, 'city-runtime.js'), 'utf8');
+// the gladiator arena (arena-spec.js, arena-runtime.js) is appended after the city data and the city runtime
+const rd = f => fs.readFileSync(path.join(__dirname, f), 'utf8');
+const spec = rd('citymaps-spec.js') + '\n' + rd('arena-spec.js'), runtime = rd('city-runtime.js') + '\n' + rd('arena-runtime.js');
 
 let war = fs.readFileSync(path.join(__dirname, 'war.js'), 'utf8');
 const rep = (a, b) => { if (!war.includes(a)) throw new Error('missing ' + a.slice(0, 70)); war = war.replace(a, () => b); };
@@ -80,6 +82,7 @@ swap('function bake() {', '// --------------------------------------------------
 `);
 swap('function drawBridge() {', 'function draw(t) {', 'function drawBridge() {}\nfunction drawBarricade() {}\n');
 rep('  const items = [{ y: OB.y, f: drawBarricade }];', '  const items = SITES.map(s => ({ y: s.y, f: () => drawSite(s) })); items.push({ y: -1e9, f: () => drawCityExtras(t) });');
+rep("$('cFlags').textContent = '⚑ ' + caps + '/3';", "$('cFlags').textContent = MAP.waves ? waveChip() : '⚑ ' + caps + '/3';");
 rep('const EMBED = window.name === \'legwar\';', "const EMBED = window.name.startsWith('legwar');");
 
 // ---- assemble the page from gen.js, with the city art, the data and the runtime around the engine

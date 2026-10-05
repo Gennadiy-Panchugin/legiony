@@ -1,0 +1,128 @@
+<title>Арена: интерфейс волн гладиаторов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Alegreya+Sans:wght@500;700;800;900&display=swap">
+<style>
+  /* the same wooden art board as the other toon2d sheets */
+  :root { --bg: #2a1a10; --ink: #fff3dc; --muted: #e2c9a0; --display: 'Lilita One', 'Alegreya Sans', sans-serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; } body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font: 400 42px var(--display); margin: 0 0 6px; color: #ffe6a8; }
+  p { margin: 0 0 12px; color: var(--muted); max-width: 800px; } b { color: var(--ink); }
+  .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; margin-top: 18px; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .pic { border-radius: 22px; overflow: hidden; border: 4px solid #1a0e06; line-height: 0; max-width: 300px; }
+  svg { display: block; width: 100%; height: auto; font-family: var(--display); }
+  figcaption { font-size: 14px; color: var(--muted); } figcaption b { font: 400 18px var(--display); color: #ffe6a8; display: block; }
+  ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+</style>
+<div class="wrap">
+  <h1>Арена: волны гладиаторов</h1>
+  <p>Четыре варианта экрана боя в Колизее, когда мы <b>обороняем арену от волн</b> гладиаторов. Карта общая: овальный песок, трибуны с толпой, четыре решётчатых выхода. Различается только интерфейс. Это арт, в игру ничего не встроено. Выберите вариант (или смешайте), и я перенесу его в бой.</p>
+  <div class="row">
+    <figure><div class="pic"><svg id="a" viewBox="0 0 360 640" role="img" aria-label="Вариант А"></svg></div>
+      <figcaption><b>А · Классика</b>Как «Волна N из M» в других режимах: счётчик и полоска волн сверху, остаток врагов, ускорение.
+      <ul><li>Знакомо игроку</li><li>Меньше всего места</li></ul></figcaption></figure>
+    <figure><div class="pic"><svg id="b" viewBox="0 0 360 640" role="img" aria-label="Вариант Б"></svg></div>
+      <figcaption><b>Б · Афиша</b>Глашатай объявляет, кто выйдет: свиток с типами гладиаторов следующей волны и таймером.
+      <ul><li>Можно готовиться к типу врага</li><li>Больше текста</li></ul></figcaption></figure>
+    <figure><div class="pic"><svg id="c" viewBox="0 0 360 640" role="img" aria-label="Вариант В"></svg></div>
+      <figcaption><b>В · Врата</b>Почти без панелей: над каждым выходом «!» с числом бойцов и кольцом таймера.
+      <ul><li>Видно, откуда ждать</li><li>Поле остаётся чистым</li></ul></figcaption></figure>
+    <figure><div class="pic"><svg id="d" viewBox="0 0 360 640" role="img" aria-label="Вариант Г"></svg></div>
+      <figcaption><b>Г · Милость толпы</b>Шкала восторга толпы и лента волн. Эффектные победы растят шкалу, она даёт награду.
+      <ul><li>Новая механика, нужна настройка</li><li>Самый «арена-образный»</li></ul></figcaption></figure>
+  </div>
+</div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (s, h) => { s.insertAdjacentHTML('beforeend', h); };
+const RED = '#c0392b', BLUE = '#2e5d8a', GOLD = '#f2c14a', INK = '#2a1a10', PAPER = '#f4e3b8';
+
+// shared arena: stands, crowd, sand, four gates, units
+function arena(s) {
+  let h = '<rect width="360" height="640" fill="#7a5634"/>';
+  // stands: stepped rings with a crowd of dots
+  for (let i = 0; i < 4; i++) {
+    const rx = 178 - i * 8, ry = 318 - i * 8;
+    h += `<ellipse cx="180" cy="330" rx="${rx}" ry="${ry}" fill="${['#9a6f45','#8a6139','#a4784b','#936a40'][i]}" stroke="#4a2f19" stroke-width="2"/>`;
+  }
+  const cols = ['#e8c07a', '#d9553f', '#4f86c6', '#f2e3b3', '#6aa86a'];
+  for (let k = 0; k < 190; k++) {
+    const a = k * 2.399, r = 0.80 + ((k * 37) % 17) / 90;
+    const x = 180 + Math.cos(a) * 168 * r, y = 330 + Math.sin(a) * 308 * r;
+    h += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${cols[k % 5]}" opacity=".85"/>`;
+  }
+  h += '<ellipse cx="180" cy="330" rx="126" ry="262" fill="#4a2f19"/>';
+  h += '<ellipse cx="180" cy="330" rx="118" ry="254" fill="#e3c27e"/>';
+  h += '<ellipse cx="180" cy="330" rx="118" ry="254" fill="none" stroke="#c9a15a" stroke-width="4" stroke-dasharray="3 9"/>';
+  // sand patches and an obstacle pair
+  h += '<ellipse cx="150" cy="300" rx="34" ry="14" fill="#d6b06a" opacity=".7"/><ellipse cx="215" cy="400" rx="30" ry="12" fill="#d6b06a" opacity=".7"/>';
+  h += '<g fill="#8f8f8f" stroke="#555" stroke-width="2"><rect x="105" y="330" width="22" height="22" rx="3"/><rect x="233" y="320" width="22" height="22" rx="3"/></g>';
+  // gates: N, S, W, E
+  const gate = (x, y, w, hh) => `<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="5" fill="#2b1a0c" stroke="#7b5a35" stroke-width="3"/><g stroke="#8a8a8a" stroke-width="2">${w > hh ? '<path d="M' + (x + 8) + ' ' + y + 'v' + hh + 'M' + (x + w / 2) + ' ' + y + 'v' + hh + 'M' + (x + w - 8) + ' ' + y + 'v' + hh + '"/>' : '<path d="M' + x + ' ' + (y + 8) + 'h' + w + 'M' + x + ' ' + (y + hh / 2) + 'h' + w + 'M' + x + ' ' + (y + hh - 8) + 'h' + w + '"/>'}</g>`;
+  h += gate(148, 70, 64, 22) + gate(148, 568, 64, 22) + gate(54, 300, 22, 60) + gate(284, 300, 22, 60);
+  // units: ours (red) bottom, enemy gladiators (blue) top and sides
+  const unit = (x, y, c) => `<g><ellipse cx="${x}" cy="${y + 9}" rx="9" ry="3.5" fill="#000" opacity=".25"/><circle cx="${x}" cy="${y}" r="9" fill="${c}" stroke="${INK}" stroke-width="2.5"/><rect x="${x - 3}" y="${y - 14}" width="6" height="6" rx="1" fill="${c}" stroke="${INK}" stroke-width="1.5"/></g>`;
+  [[150, 470], [170, 482], [190, 470], [210, 482], [160, 500], [200, 502], [140, 440], [220, 448]].forEach(p => h += unit(p[0], p[1], RED));
+  [[160, 150], [180, 138], [200, 150], [175, 172], [195, 178]].forEach(p => h += unit(p[0], p[1], BLUE));
+  [[100, 332]].forEach(p => h += unit(p[0], p[1], BLUE));
+  el(s, h);
+}
+// small helpers for HUD pieces
+const pill = (x, y, w, hh, fill = '#2a1a10', op = .88) => `<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="${hh / 2}" fill="${fill}" opacity="${op}" stroke="#fff3dc" stroke-width="1.5"/>`;
+const txt = (x, y, t, sz = 16, fill = '#fff3dc', anchor = 'middle') => `<text x="${x}" y="${y}" font-size="${sz}" fill="${fill}" text-anchor="${anchor}" stroke="${INK}" stroke-width="3" paint-order="stroke" style="font-family:'Lilita One',sans-serif">${t}</text>`;
+const card = (x, y, c, name, hp) => `<g><rect x="${x}" y="${y}" width="76" height="62" rx="12" fill="#3a2514" stroke="${GOLD}" stroke-width="2"/><circle cx="${x + 38}" cy="${y + 24}" r="14" fill="${c}" stroke="${INK}" stroke-width="3"/>${txt(x + 38, y + 54, name, 12)}<rect x="${x + 10}" y="${y + 58}" width="56" height="4" rx="2" fill="#000"/><rect x="${x + 10}" y="${y + 58}" width="${56 * hp}" height="4" rx="2" fill="#6bd16b"/></g>`;
+const cards = () => card(8, 566, RED, 'Принцепсы', .9) + card(94, 566, '#d98f2b', 'Триарии', .7) + card(180, 566, '#7a5aa8', 'Велиты', 1) + card(266, 566, '#2f8a6b', 'Гладиаторы', .5);
+const speed = (x, y) => `<g>${pill(x, y, 62, 28)}${txt(x + 31, y + 20, '×1 ▸▸', 14)}</g>`;
+const heads = (x, y, n, c) => Array.from({ length: n }, (_, i) => `<circle cx="${x + i * 14}" cy="${y}" r="5" fill="${c}" stroke="${INK}" stroke-width="1.5"/>`).join('');
+
+// A: classic bar
+(() => { const s = document.getElementById('a'); arena(s);
+  el(s, pill(10, 10, 340, 44) + txt(180, 31, 'Волна 3 из 8', 20, GOLD));
+  for (let i = 0; i < 8; i++) el(s, `<rect x="${28 + i * 38}" y="40" width="30" height="7" rx="3.5" fill="${i < 2 ? '#6bd16b' : i === 2 ? GOLD : '#5a4630'}" stroke="${INK}" stroke-width="1"/>`);
+  el(s, pill(10, 62, 112, 26) + heads(26, 75, 5, BLUE) + txt(90, 80, '×5', 13));
+  el(s, speed(288, 62));
+  el(s, cards());
+})();
+
+// B: poster scroll with next wave
+(() => { const s = document.getElementById('b'); arena(s);
+  el(s, `<g><path d="M24 8h312v78H24z" fill="${PAPER}" stroke="#7b5a35" stroke-width="3"/><rect x="14" y="4" width="14" height="86" rx="7" fill="#c9a15a" stroke="${INK}" stroke-width="2"/><rect x="332" y="4" width="14" height="86" rx="7" fill="#c9a15a" stroke="${INK}" stroke-width="2"/></g>`);
+  el(s, `<text x="180" y="30" text-anchor="middle" font-size="19" fill="${RED}" style="font-family:'Lilita One',sans-serif">ВОЛНА 3 · ГЛАДИАТОРЫ ЮГА</text>`);
+  el(s, `<text x="180" y="50" text-anchor="middle" font-size="13" fill="#5a3a1c" font-weight="800">Мирмиллоны ×3 · Ретиарии ×2 · Фракиец</text>`);
+  el(s, `<rect x="44" y="60" width="272" height="10" rx="5" fill="#d3b57a" stroke="${INK}" stroke-width="1.5"/><rect x="44" y="60" width="170" height="10" rx="5" fill="${RED}"/>` + `<text x="180" y="79" text-anchor="middle" font-size="11" fill="#5a3a1c" font-weight="800">Выход через 0:24</text>`);
+  el(s, `<g>${pill(10, 94, 74, 26)}${txt(47, 112, '3 / 8', 14, GOLD)}</g>` + speed(288, 94));
+  el(s, `<g>${pill(10, 126, 112, 26, '#3a2514')}${heads(26, 139, 5, BLUE)}${txt(98, 144, '×5', 13)}</g>`);
+  el(s, cards());
+})();
+
+// C: gate markers, minimal chrome
+(() => { const s = document.getElementById('c'); arena(s);
+  const ring = (x, y, n, pct, big) => { const r = 19, c = 2 * Math.PI * r; return `<g><circle cx="${x}" cy="${y}" r="${r + 3}" fill="#2a1a10" opacity=".9"/><circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#5a4630" stroke-width="5"/><circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${big ? '#ff6a4a' : GOLD}" stroke-width="5" stroke-dasharray="${c * pct} ${c}" transform="rotate(-90 ${x} ${y})" stroke-linecap="round"/>${txt(x, y + 7, '!', 22, big ? '#ff6a4a' : GOLD)}<g>${pill(x - 18, y + 24, 36, 18)}${txt(x, y + 38, '×' + n, 12)}</g></g>`; };
+  el(s, ring(180, 118, 3, .7, true) + ring(100, 330, 1, .35) + ring(262, 330, 2, .5));
+  el(s, `<path d="M180 96 v-14 m-8 8 l8 -8 l8 8" stroke="#ff6a4a" stroke-width="4" fill="none" stroke-linecap="round"/>`);
+  el(s, pill(120, 8, 120, 34) + txt(180, 32, 'Волна 3/8', 17, GOLD));
+  el(s, speed(8, 8));
+  el(s, `<g>${pill(292, 8, 60, 34)}${txt(322, 32, '⏸', 17)}</g>`);
+  el(s, cards());
+})();
+
+// D: crowd favour meter
+(() => { const s = document.getElementById('d'); arena(s);
+  el(s, `<g><rect x="10" y="8" width="340" height="50" rx="14" fill="#2a1a10" opacity=".92" stroke="${GOLD}" stroke-width="2"/></g>`);
+  el(s, `<text x="22" y="28" font-size="13" fill="${GOLD}" style="font-family:'Lilita One',sans-serif">МИЛОСТЬ ТОЛПЫ</text>`);
+  el(s, `<rect x="22" y="36" width="260" height="12" rx="6" fill="#000"/><rect x="22" y="36" width="170" height="12" rx="6" fill="url(#gr)"/><defs><linearGradient id="gr"><stop offset="0" stop-color="#d9553f"/><stop offset=".5" stop-color="#f2c14a"/><stop offset="1" stop-color="#6bd16b"/></linearGradient></defs>`);
+  el(s, `<g stroke="#fff3dc" stroke-width="2"><path d="M107 34v16M192 34v16"/></g>`);
+  el(s, txt(318, 40, '👍', 24) + `<text x="318" y="54" text-anchor="middle" font-size="9" fill="#fff3dc" font-weight="900">+30 ден.</text>`);
+  // wave timeline
+  const icons = ['#c0392b', '#c0392b', GOLD, '#8a8a8a', '#8a8a8a', '#8a8a8a', '#8a8a8a', '#b63fbf'];
+  el(s, pill(10, 66, 340, 30, '#3a2514'));
+  icons.forEach((c, i) => el(s, `<circle cx="${34 + i * 42}" cy="81" r="11" fill="${i < 2 ? '#3d7a3d' : c}" stroke="${i === 2 ? '#fff' : INK}" stroke-width="${i === 2 ? 3 : 2}"/>${txt(34 + i * 42, 86, i < 2 ? '✓' : i === 7 ? '★' : i + 1, 12)}`));
+  el(s, `<text x="174" y="112" text-anchor="middle" font-size="11" fill="#fff3dc" font-weight="900" stroke="${INK}" stroke-width="3" paint-order="stroke">Последняя волна: чемпион арены</text>`);
+  el(s, speed(8, 124));
+  // combo pop-up on the sand
+  el(s, `<g transform="rotate(-6 180 250)"><rect x="110" y="228" width="140" height="44" rx="12" fill="#f2c14a" stroke="${INK}" stroke-width="3"/>${txt(180, 256, 'Серия ×3!', 22, '#c0392b')}</g>`);
+  el(s, cards());
+})();
+</script>
