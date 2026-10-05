@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Оборона берега</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&amp;family=Alegreya+Sans:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#d9a441}a:hover{color:#f0c66a}
+.pushR{animation:pushR 1.8s ease-in-out infinite}
+@keyframes pushR{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.pushB{animation:pushB 1.8s ease-in-out infinite}
+@keyframes pushB{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.flow{stroke-dasharray:18 8;animation:flow 1.3s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-26}}
+.march{animation:march 30s linear infinite}
+@keyframes march{to{stroke-dashoffset:-600}}
+.spin{transform-box:fill-box;transform-origin:center;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.14)}}
+.blink{animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.bob{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px) rotate(-2deg)}}
+.ram{animation:ram 1.4s ease-in-out infinite}
+@keyframes ram{50%{transform:translateY(-8px)}}
+.lift{animation:lift 1.6s ease-in-out infinite}
+@keyframes lift{50%{transform:translateY(-5px)}}
+.run{animation:run 2.6s linear infinite}
+@keyframes run{0%{offset-distance:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@media (prefers-reduced-motion: reduce){.pushR,.pushB,.flow,.march,.spin,.pulse,.blink,.bob,.ram,.lift,.run{animation:none}}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #17130e; color: #efe6d2; font-family: 'Alegreya Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="height: 64px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #1e1913; border-bottom: 1px solid #3a3024">
+    <button type="button" aria-label="Сдаться" style="width: 44px; height: 44px; border-radius: 10px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font-size: 18px; cursor: pointer">⚑</button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.15">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #d9a441; font-weight: 700">Вариант 7</span>
+      <span style="font-family: 'Cormorant SC', serif; font-size: 22px; font-weight: 700; letter-spacing: .04em">Оборона Сардинии</span>
+      <span style="font-size: 12px; color: #b8aa8c">Четыре отряда · волны с моря</span>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; border: 1px solid #4a3d2c; background: #2a231a; font-size: 13px; font-weight: 700; color: #f6e7bf; white-space: nowrap">Волна 3/5</span>
+  </div>
+  
+  <div style="flex: 1 1 auto; position: relative; min-height: 0">
+    <svg width="390" height="630" viewBox="0 0 390 630" style="display: block" role="img" aria-label="Оборона берега">
+      <defs>
+        <marker id="arR" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c0261b"/></marker>
+        <marker id="arB" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f6fd6"/></marker>
+        <marker id="arW" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fff8e6"/></marker>
+        <marker id="arG" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#d9a441"/></marker>
+      </defs>
+      
+  <rect x="0" y="0" width="390" height="630" fill="#e6d6ad"/>
+  <circle cx="70" cy="120" r="90" fill="#d9c493" opacity=".35"/>
+  <circle cx="320" cy="470" r="120" fill="#d4bd88" opacity=".3"/>
+  <circle cx="240" cy="60" r="60" fill="#f1e4c3" opacity=".5"/>
+  <rect x="10" y="10" width="370" height="610" fill="none" stroke="#4a3420" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="2 5"/>
+      
+  <rect x="0" y="0" width="390" height="630" fill="#5d8fbf" opacity=".55"/>
+  <path d="M70 170 C120 120 260 110 320 160 C370 200 365 330 330 400 C300 460 200 490 130 450 C70 420 40 330 45 260 C48 220 55 190 70 170 Z" fill="#d8c48e" stroke="#c9b277" stroke-width="10"/>
+  <path d="M70 170 C120 120 260 110 320 160 C370 200 365 330 330 400 C300 460 200 490 130 450 C70 420 40 330 45 260 C48 220 55 190 70 170 Z" fill="#cbb98a"/>
+  <path d="M120 230 C160 200 250 200 280 240 C300 290 260 360 200 370 C150 370 110 320 120 230 Z" fill="#b7a46f"/>
+  <path d="M183 290L205 261.4L227 290Z" fill="#cdb98c" stroke="#4a3420" stroke-width="1.4"/><path d="M205 261.4L212.7 274.6L205 272.4Z" fill="#fff8e6"/>
+  <path d="M195 300h20v20h-20z" fill="#9e2a20" stroke="#4a3420" stroke-width="1.4"/>
+  <g><rect x="139.6" y="329" width="130.8" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="205" y="342" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">Деревня — защитить</text></g>
+  <path d="M90 210h3.2v4.4h-3.2zM96 210h3.2v4.4h-3.2zM102 210h3.2v4.4h-3.2zM108 210h3.2v4.4h-3.2zM90 216h3.2v4.4h-3.2zM96 216h3.2v4.4h-3.2zM102 216h3.2v4.4h-3.2zM108 216h3.2v4.4h-3.2zM90 222h3.2v4.4h-3.2zM96 222h3.2v4.4h-3.2zM102 222h3.2v4.4h-3.2zM108 222h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/><g><rect x="90.7" y="229" width="18.6" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="100" y="242" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">I</text></g>
+  <path d="M270 190h3.2v4.4h-3.2zM276 190h3.2v4.4h-3.2zM282 190h3.2v4.4h-3.2zM288 190h3.2v4.4h-3.2zM270 196h3.2v4.4h-3.2zM276 196h3.2v4.4h-3.2zM282 196h3.2v4.4h-3.2zM288 196h3.2v4.4h-3.2zM270 202h3.2v4.4h-3.2zM276 202h3.2v4.4h-3.2zM282 202h3.2v4.4h-3.2zM288 202h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/><g><rect x="267.4" y="209" width="25.2" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="280" y="222" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">II</text></g>
+  <path d="M150 410h3.2v4.4h-3.2zM156 410h3.2v4.4h-3.2zM162 410h3.2v4.4h-3.2zM168 410h3.2v4.4h-3.2zM150 416h3.2v4.4h-3.2zM156 416h3.2v4.4h-3.2zM162 416h3.2v4.4h-3.2zM168 416h3.2v4.4h-3.2zM150 422h3.2v4.4h-3.2zM156 422h3.2v4.4h-3.2zM162 422h3.2v4.4h-3.2zM168 422h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/><g><rect x="144.1" y="429" width="31.799999999999997" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="160" y="442" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">III</text></g>
+  <path d="M300 360h4v4h-4zM297 354h4v4h-4zM303 354h4v4h-4zM294 348h4v4h-4zM300 348h4v4h-4zM306 348h4v4h-4zM291 342h4v4h-4zM297 342h4v4h-4zM303 342h4v4h-4zM309 342h4v4h-4z" class="pushR" fill="#c0261b"/><g><rect x="287.4" y="371" width="25.2" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="300" y="384" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">IV</text></g>
+  <circle cx="160" cy="418" r="22" fill="none" stroke="#d9a441" stroke-width="2.5" stroke-dasharray="5 4" class="spin"/>
+  <path d="M175 420 C230 450 290 440 330 412" stroke="#d9a441" stroke-width="3" fill="none" stroke-dasharray="6 5" class="march" marker-end="url(#arG)"/><circle cx="0" cy="0" r="3.4" fill="#d9a441" stroke="#fff8e6" stroke-width="1" class="run" style="offset-path: path('M175 420 C230 450 290 440 330 412'); offset-rotate: 0deg; animation-delay: 0s"/><circle cx="0" cy="0" r="3.4" fill="#d9a441" stroke="#fff8e6" stroke-width="1" class="run" style="offset-path: path('M175 420 C230 450 290 440 330 412'); offset-rotate: 0deg; animation-delay: -1.3s"/>
+  <g transform="translate(40 90) rotate(30)"><g class="bob"><path d="M-18 0 H18 L12 8 H-12 Z" fill="#6b4424" stroke="#4a3420" stroke-width="1"/><path d="M0 0 V-18" stroke="#4a3420" stroke-width="1.6"/><path d="M-9 -16 H9 L7 -5 H-7 Z" fill="#dfe8f5"/><path d="M-9 -12 H9" stroke="#2f6fd6" stroke-width="2"/></g></g><g transform="translate(350 470) rotate(-150)"><g class="bob"><path d="M-18 0 H18 L12 8 H-12 Z" fill="#6b4424" stroke="#4a3420" stroke-width="1"/><path d="M0 0 V-18" stroke="#4a3420" stroke-width="1.6"/><path d="M-9 -16 H9 L7 -5 H-7 Z" fill="#dfe8f5"/><path d="M-9 -12 H9" stroke="#2f6fd6" stroke-width="2"/></g></g><g transform="translate(370 250) rotate(-90)"><g class="bob"><path d="M-18 0 H18 L12 8 H-12 Z" fill="#6b4424" stroke="#4a3420" stroke-width="1"/><path d="M0 0 V-18" stroke="#4a3420" stroke-width="1.6"/><path d="M-9 -16 H9 L7 -5 H-7 Z" fill="#dfe8f5"/><path d="M-9 -12 H9" stroke="#2f6fd6" stroke-width="2"/></g></g>
+  <g><circle cx="80" cy="130" r="13" fill="#7d1d16" class="pulse"/><text x="80" y="135" text-anchor="middle" font-size="16" font-weight="700" fill="#fff" font-family="Alegreya Sans, sans-serif">!</text></g><g><circle cx="338" cy="440" r="13" fill="#7d1d16" class="pulse"/><text x="338" y="445" text-anchor="middle" font-size="16" font-weight="700" fill="#fff" font-family="Alegreya Sans, sans-serif">!</text></g><g><circle cx="355" cy="290" r="13" fill="#7d1d16" class="pulse"/><text x="355" y="295" text-anchor="middle" font-size="16" font-weight="700" fill="#fff" font-family="Alegreya Sans, sans-serif">!</text></g>
+  <path d="M345.1 442.4h3.2v4.4h-3.2zM357.1 442.0h3.2v4.4h-3.2zM357.0 442.0h3.2v4.4h-3.2zM344.2 438.4h3.2v4.4h-3.2zM343.5 444.7h3.2v4.4h-3.2zM353.9 434.0h3.2v4.4h-3.2zM352.0 437.0h3.2v4.4h-3.2zM356.8 444.0h3.2v4.4h-3.2zM333.1 442.0h3.2v4.4h-3.2zM341.7 437.7h3.2v4.4h-3.2zM358.2 437.5h3.2v4.4h-3.2zM349.2 444.9h3.2v4.4h-3.2z" class="pushB" fill="#2f6fd6"/>
+  <g><rect x="70.2" y="554" width="249.6" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="195" y="567" text-anchor="middle" font-size="11" font-weight="700" fill="#c7d6ff" font-family="Alegreya Sans, sans-serif">Высадка с трёх сторон — волна 3 из 5</text></g>
+  
+    </svg>
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; justify-content: center">
+      <div style="max-width: 100%; padding: 9px 14px; border-radius: 12px; background: rgba(23,19,14,.92); border: 1px solid #d9a441; color: #f6d77a; font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3">Коснитесь отряда, затем места на острове. Корабли подходят с разных сторон</div>
+    </div>
+  </div>
+  <div style="height: 86px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #1e1913; border-top: 1px solid #3a3024">
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11"/></svg><span>Отступить</span></button>
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #d9a441; background: #d9a441; color: #1e1408; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l10 5V5z"/></svg><span>Клич</span></button>
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span>Щиты</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

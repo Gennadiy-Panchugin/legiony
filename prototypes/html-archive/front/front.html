@@ -1,0 +1,531 @@
+<!-- PROTOTYPE - NOT FOR PRODUCTION -->
+<!-- Question: does a Hearts-of-Iron-style front line (territory + drawn offensive arrows) feel better than node capture? -->
+<!-- Date: 2026-10-02 -->
+<title>Линия фронта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  :root { --bg: #17130e; --ink: #efe6d2; --muted: #b8aa8c; --gold: #d9a441; --line: #3a3024; --panel: #1e1913;
+          --display: 'Cormorant SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; }
+  :root[data-theme="light"], :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #17130e; } }
+  :root[data-theme="dark"] { --bg: #17130e; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); }
+  .stage { box-sizing: border-box; min-height: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+  .fit { position: relative; flex: none; }
+  .phone { position: absolute; left: 0; top: 0; width: 540px; height: 960px; transform-origin: 0 0; overflow: hidden;
+           border-radius: 22px; background: #3f2717; box-shadow: 0 0 0 1px var(--line), 0 18px 50px rgba(0,0,0,.6); }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+  .hud { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: rgba(30,25,19,.97); }
+  .top { top: 0; height: 64px; border-bottom: 1px solid var(--line); }
+  .bar { top: 64px; height: 26px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .bottom { bottom: 0; height: 84px; gap: 8px; padding: 0 12px; border-top: 1px solid var(--line); }
+  .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .tt b { font-family: var(--display); font-size: 24px; letter-spacing: .04em; }
+  .tt span { font-size: 12px; color: var(--muted); }
+  .chip { padding: 6px 11px; border-radius: 999px; border: 1px solid #4a3d2c; background: #2a231a; font-weight: 700; font-size: 14px; }
+  .tbar { flex: 1; height: 9px; border-radius: 999px; background: #2f6fd6; overflow: hidden; }
+  .tbar i { display: block; height: 100%; background: #c0261b; width: 50%; transition: width .3s; }
+  button.b { flex: 1 1 0; min-width: 0; height: 56px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: var(--ink);
+             font: 700 13px var(--body); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
+  button.b[aria-pressed="true"] { background: var(--gold); color: #1e1408; border-color: var(--gold); }
+  button.b:disabled { opacity: .4; cursor: not-allowed; }
+  button.b svg { width: 20px; height: 20px; }
+  .ibtn { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #4a3d2c; background: #2a231a; color: var(--ink); font-size: 18px; cursor: pointer; }
+  .toast { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); max-width: calc(100% - 40px); width: max-content; padding: 9px 14px; border-radius: 12px;
+           background: rgba(15,12,8,.94); border: 1px solid var(--gold); color: #f6d77a; font-size: 14px; font-weight: 700; text-align: center; pointer-events: none; }
+  .over { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,8,5,.7); }
+  .box { width: 360px; padding: 22px; border-radius: 16px; background: #1e1913; border: 1px solid var(--gold); text-align: center; display: flex; flex-direction: column; gap: 10px; }
+  .box h2 { font-family: var(--display); font-size: 44px; margin: 0; color: #f6e7bf; }
+  .box p { margin: 0; color: var(--muted); }
+  .box button { height: 52px; border-radius: 12px; border: 0; background: var(--gold); color: #1e1408; font: 700 15px var(--body); cursor: pointer; }
+  .help { position: absolute; top: 100px; left: 14px; right: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(30,25,19,.95); border: 1px solid var(--gold); font-size: 14px; line-height: 1.4; }
+  .help b { color: #f6d77a; }
+  .help button { margin-top: 8px; height: 40px; width: 100%; border-radius: 10px; border: 0; background: var(--gold); font: 700 14px var(--body); cursor: pointer; }
+</style>
+<div class="stage"><div class="fit" id="fit"><div class="phone" id="board">
+  <canvas id="cv" width="540" height="960" aria-label="Поле боя: линия фронта"></canvas>
+  <div class="hud top">
+    <button class="ibtn" id="restart" type="button" aria-label="Начать заново" title="Начать заново">↻</button>
+    <div class="tt"><b>Линия фронта</b><span id="sub">Река Анио · прототип боя</span></div>
+    <span class="chip" id="clock">4:00</span>
+  </div>
+  <div class="hud bar"><b style="color:#ff8a80" id="pR">Рим 50%</b><div class="tbar"><i id="tb"></i></div><b style="color:#9ec1ff" id="pB">50%</b></div>
+  <div class="hud bottom">
+    <button class="b" id="mArrow" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 20 L18 6"/><path d="M10 6h8v8"/></svg><span>Стрелка</span></button>
+    <button class="b" id="mLine" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 15h18" stroke-dasharray="4 3"/><path d="M3 9h18"/></svg><span>Рубеж</span></button>
+    <button class="b" id="mType" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="5" width="10" height="14" rx="1"/></svg><span id="typeLbl">Набор: пехота</span></button>
+    <button class="b" id="mCry" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4l10 5V5z"/></svg><span>Клич</span></button>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <div class="help" id="help">
+    <b>Как играть.</b> Проведите пальцем <b>стрелку</b> от своих войск — ближайшие отряды пойдут в наступление вдоль неё (до 3 стрелок, коснитесь стрелки — снять). <b>Рубеж</b> — линия, на которую встают свободные отряды. «Набор» выбирает, кого шлёт лагерь. Река проходима по мостам, холм даёт лучникам дальность, лес тормозит конницу. Победа — лагерь врага или 80% земли.
+    <button type="button" id="helpOk">В бой</button>
+  </div>
+  <div class="over" id="over" hidden><div class="box"><h2 id="ovT">Победа</h2><p id="ovP"></p><button type="button" id="ovB">Ещё бой</button></div></div>
+</div></div></div>
+<script>
+'use strict';
+const W = 540, H = 960, DPR = Math.min(2, window.devicePixelRatio || 1);
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- fit the 540×960 board to the window
+function fit() {
+  const k = Math.max(0.3, Math.min((innerWidth - 32) / W, (innerHeight - 32) / H, 1.2));
+  $('board').style.transform = 'scale(' + k + ')';
+  $('fit').style.width = W * k + 'px'; $('fit').style.height = H * k + 'px';
+}
+addEventListener('resize', fit); fit();
+
+// ---------------------------------------------------------------- field, grid, terrain
+const TOP = 90, BOT = H - 84;                 // playable band between the bars
+const CELL = 18, COLS = Math.ceil(W / CELL), ROWS = Math.ceil(H / CELL);
+const RIVER_Y0 = 466, RIVER_Y1 = 496;          // the Anio crosses the middle of the field
+const BRIDGES = [[96, 150], [390, 444]];       // x ranges where the river can be crossed
+const HILLS = [{ x: 96, y: 300, r: 46 }, { x: 446, y: 660, r: 46 }];
+const FORESTS = [{ x: 440, y: 300, r: 52 }, { x: 100, y: 660, r: 52 }];
+const CAMP = { 1: { x: 270, y: 832 }, 2: { x: 270, y: 132 } };
+const inRiver = (x, y) => y > RIVER_Y0 && y < RIVER_Y1 && !BRIDGES.some(([a, b]) => x > a && x < b);
+const onHill = (x, y) => HILLS.some(h => Math.hypot(h.x - x, h.y - y) < h.r);
+const inForest = (x, y) => FORESTS.some(f => Math.hypot(f.x - x, f.y - y) < f.r);
+
+// ---------------------------------------------------------------- units: three kinds with counters
+const INF = 0, ARC = 1, CAV = 2;
+const KIND = [
+  { name: 'пехота', hp: 16, dps: 3.6, range: 9, speed: 24 },             // slower killing than the node game: armies pile up into a visible mass
+  { name: 'лучники', hp: 6, dps: 3.6, range: 44, speed: 21 },
+  { name: 'конница', hp: 10, dps: 2.8, range: 9, speed: 44 }
+];
+// attacker → defender multipliers: archers beat infantry, infantry beats cavalry, cavalry beats archers
+const MULT = [[1, 1, 1.6], [1.6, 1, 0.6], [0.7, 1.9, 1]];
+const HOME_BONUS = 1.25, BRIDGE_PENALTY = 1.5, AGGRO = 60;
+const CHARGE = 10, SPAWN_EVERY = 0.8, MAX_UNITS = 130, MAX_ARROWS = 3, GATHER = 3;   // seconds an offensive musters before it moves
+
+let G;                                          // the whole battle state
+function newBattle() {
+  const own = new Int8Array(COLS * ROWS);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) own[r * COLS + c] = (r * CELL + CELL / 2) < (RIVER_Y0 + RIVER_Y1) / 2 ? 2 : 1;
+  G = { t: 0, over: false, units: [], arrows: [], lines: { 1: null, 2: null }, own, spawnT: { 1: 0, 2: 0.5 },
+        type: { 1: INF, 2: INF }, aiT: 3, cryUntil: 0, cryUsed: false, shots: [], fx: [], terrT: 0, frontT: 0, front: { 1: [], 2: [] },
+        stats: { 1: 0, 2: 0 }, anchors: { 1: [], 2: [] } };
+  for (const side of [1, 2]) for (let i = 0; i < 39; i++) {           // opening armies along each bank
+    const x = 40 + (i % 13) * 36 + (side === 1 ? 0 : 12), y = side === 1 ? 540 + Math.floor(i / 13) * 24 : 424 - Math.floor(i / 13) * 24;
+    addUnit(side, i % 5 === 0 ? ARC : i % 7 === 0 ? CAV : INF, x, y);
+  }
+  updateFront(); shade = null;
+}
+function addUnit(owner, kind, x, y) {
+  const k = KIND[kind];
+  G.units.push({ owner, kind, x, y, hp: k.hp, max: k.hp, arrow: null, wp: 0, charge: true, run: 0, id: Math.random(), face: owner === 1 ? -1 : 1 });
+}
+const cellOf = (x, y) => { const c = Math.min(COLS - 1, Math.max(0, Math.floor(x / CELL))), r = Math.min(ROWS - 1, Math.max(0, Math.floor(y / CELL))); return r * COLS + c; };
+const ownAt = (x, y) => G.own[cellOf(x, y)];
+
+// own cells that touch enemy land, and are not river: where idle troops hold the line
+function updateFront() {
+  for (const side of [1, 2]) {
+    const out = [];
+    for (let r = Math.floor(TOP / CELL); r < Math.floor(BOT / CELL); r++) for (let c = 0; c < COLS; c++) {
+      const i = r * COLS + c; if (G.own[i] !== side) continue;
+      const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2; if (inRiver(x, y)) continue;
+      const n = [i - 1, i + 1, i - COLS, i + COLS, i - COLS * 2, i + COLS * 2];
+      if (n.some(j => j >= 0 && j < G.own.length && G.own[j] === 3 - side)) out.push({ x, y });
+    }
+    G.front[side] = out;
+    // anchors: one point per 60 px of front width, so idle troops stand in visible groups
+    const bins = new Map();
+    for (const p of out) { const k = Math.floor(p.x / 60); (bins.get(k) || bins.set(k, []).get(k)).push(p); }
+    G.anchors[side] = [...bins.values()].map(list => { list.sort((a, b) => a.y - b.y); return list[Math.floor(list.length / 2)]; }).sort((a, b) => a.x - b.x);
+    for (const [a, b] of BRIDGES) { const x = (a + b) / 2, y = side === 1 ? RIVER_Y1 + 26 : RIVER_Y0 - 26; if (ownAt(x, y) === side) G.anchors[side].push({ x, y }, { x: x - 14, y }, { x: x + 14, y }); }
+  }
+}
+// river crossings: a unit headed across the river walks to the nearest bridge first
+function steer(u, tx, ty) {
+  const mid = (RIVER_Y0 + RIVER_Y1) / 2, across = (u.y - mid) * (ty - mid) < 0;
+  const onBridge = BRIDGES.some(([a, b]) => u.x > a + 4 && u.x < b - 4);
+  if (across && !onBridge) {
+    let best = null, bd = 1e9;
+    for (const [a, b] of BRIDGES) { const bx = (a + b) / 2, d = Math.abs(bx - u.x) + Math.abs(bx - tx) * 0.5; if (d < bd) { bd = d; best = bx; } }
+    return [best, u.y < mid ? RIVER_Y0 - 6 : RIVER_Y1 + 6];
+  }
+  if (across && onBridge) return [u.x + Math.sign(tx - u.x) * 0.5, u.y < mid ? RIVER_Y1 + 10 : RIVER_Y0 - 10];
+  return [tx, ty];
+}
+
+// ---------------------------------------------------------------- orders
+function addArrow(owner, pts) {
+  if (G.arrows.filter(a => a.owner === owner).length >= MAX_ARROWS) { if (owner === 1) say('Не больше трёх стрелок — снимите одну касанием'); return null; }
+  const a = { owner, pts, grabT: 0, done: false, id: Math.random(), launch: G.t + GATHER };
+  G.arrows.push(a); grab(a, 130);
+  return a;
+}
+function grab(a, radius) {                                            // idle troops near the tail join the offensive
+  const [sx, sy] = a.pts[0];
+  const free = G.units.filter(u => u.owner === a.owner && !u.arrow && Math.hypot(u.x - sx, u.y - sy) < radius);
+  const cap = 34 - G.units.filter(u => u.arrow === a).length;
+  free.sort((p, q) => Math.hypot(p.x - sx, p.y - sy) - Math.hypot(q.x - sx, q.y - sy)).slice(0, Math.max(0, cap)).forEach(u => { u.arrow = a; u.wp = nearestWp(a, u); });
+}
+function nearestWp(a, u) { let bi = 0, bd = 1e9; a.pts.forEach(([x, y], i) => { const d = Math.hypot(x - u.x, y - u.y); if (d < bd) { bd = d; bi = i; } }); return bi; }
+function removeArrow(a) { G.arrows = G.arrows.filter(x => x !== a); for (const u of G.units) if (u.arrow === a) u.arrow = null; }
+function simplify(pts) {                                               // keep a point every ~16 px
+  const out = [pts[0]];
+  for (const p of pts) { const l = out[out.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) >= 16) out.push(p); }
+  const last = pts[pts.length - 1]; if (out[out.length - 1] !== last) out.push(last);
+  return out;
+}
+
+// ---------------------------------------------------------------- the enemy: honest, a little slow
+function aiThink() {
+  // production answers what the player fields most
+  const cnt = [0, 0, 0]; for (const u of G.units) if (u.owner === 1) cnt[u.kind]++;
+  const top = cnt.indexOf(Math.max(...cnt));
+  G.type[2] = top === INF ? ARC : top === ARC ? CAV : INF;
+  if (Math.random() < 0.45) G.type[2] = Math.floor(Math.random() * 3);   // not a perfect counter-picker
+  const mine = G.arrows.filter(a => a.owner === 2);
+  for (const a of mine) if (a.done || !G.units.some(u => u.arrow === a)) removeArrow(a);
+  if (G.arrows.filter(a => a.owner === 2).length >= (G.t < 60 ? 1 : 2)) return;   // one offensive in the opening minute
+  // strike where the Roman front is thinnest
+  const fr = G.front[2]; if (!fr.length) return;
+  let best = null, bs = 1e9;
+  for (let k = 0; k < 14; k++) {
+    const p = fr[Math.floor(Math.random() * fr.length)];
+    const near = G.units.filter(u => u.owner === 1 && Math.hypot(u.x - p.x, u.y - p.y) < 90).length;
+    const mineNear = G.units.filter(u => u.owner === 2 && Math.hypot(u.x - p.x, u.y - p.y) < 120).length;
+    const s = near * 2 - mineNear; if (s < bs) { bs = s; best = p; }
+  }
+  if (!best) return;
+  const end = [best.x + (CAMP[1].x - best.x) * 0.35, best.y + 170];
+  const pts = []; for (let i = 0; i <= 10; i++) pts.push([best.x - (best.x - end[0]) * i / 10 + Math.sin(i) * 6, best.y - 40 + (end[1] - best.y + 40) * i / 10]);
+  addArrow(2, pts);
+}
+
+// ---------------------------------------------------------------- simulation
+function step(dt) {
+  if (G.over || !started) return;
+  G.t += dt;
+  // reinforcements from the camps
+  for (const side of [1, 2]) {
+    G.spawnT[side] -= dt;
+    if (G.spawnT[side] <= 0) {
+      G.spawnT[side] = SPAWN_EVERY;
+      if (G.units.filter(u => u.owner === side).length < MAX_UNITS) addUnit(side, G.type[side], CAMP[side].x + (Math.random() - .5) * 40, CAMP[side].y + (side === 1 ? -14 : 14));
+    }
+  }
+  G.aiT -= dt; if (G.aiT <= 0) { G.aiT = 7; aiThink(); }
+  for (const a of G.arrows) { a.grabT -= dt; if (a.grabT <= 0 && !a.done) { a.grabT = G.t < a.launch ? 0.5 : 2; grab(a, G.t < a.launch ? 160 : 110); } }
+
+  // spatial buckets for fights
+  const B = new Map(), key = (x, y) => (Math.floor(x / 48) << 8) | Math.floor(y / 48);
+  for (const u of G.units) { const k = key(u.x, u.y); (B.get(k) || B.set(k, []).get(k)).push(u); }
+  const near = (u, r) => {
+    const out = [], cx = Math.floor(u.x / 48), cy = Math.floor(u.y / 48), s = Math.ceil(r / 48);
+    for (let i = -s; i <= s; i++) for (let j = -s; j <= s; j++) { const l = B.get(((cx + i) << 8) | (cy + j)); if (l) out.push(...l); }
+    return out;
+  };
+  G.shots = [];
+  // idle troops: hold the drawn rubezh, else spread along their front
+  const holders = { 1: G.units.filter(u => u.owner === 1 && !u.arrow), 2: G.units.filter(u => u.owner === 2 && !u.arrow) };
+  for (const side of [1, 2]) {
+    const line = G.lines[side], fr = G.front[side], list = holders[side];
+    list.forEach((u, i) => {
+      if (line) { const p = line[Math.floor((i + 0.5) / list.length * line.length) % line.length]; u.hold = [p[0], p[1]]; }
+      else if (G.anchors[side].length) {
+        const an = G.anchors[side], p = an[i % an.length];
+        const back = u.kind === ARC ? 30 : 10;                         // archers stand a little behind the line
+        u.hold = [p.x + Math.sin(u.id * 77) * 18, p.y + (side === 1 ? back : -back) + Math.cos(u.id * 77) * 8];
+      } else u.hold = [CAMP[side].x, CAMP[side].y];
+    });
+  }
+  for (const u of G.units) {
+    const k = KIND[u.kind];
+    let range = k.range * (u.kind === ARC && onHill(u.x, u.y) ? 1.4 : 1);
+    let foe = null, bd = range * range;
+    for (const e of near(u, range)) { if (e.owner === u.owner || e.hp <= 0) continue; const d = (e.x - u.x) ** 2 + (e.y - u.y) ** 2; if (d < bd) { bd = d; foe = e; } }
+    if (foe) {
+      let dmg = k.dps * MULT[u.kind][foe.kind] * dt;
+      if (ownAt(u.x, u.y) === u.owner) dmg *= HOME_BONUS;                // holding your own land
+      if (foe.y > RIVER_Y0 - 4 && foe.y < RIVER_Y1 + 4) dmg *= BRIDGE_PENALTY;   // caught on the bridge
+      if (u.kind === CAV && u.charge) { dmg += CHARGE * MULT[u.kind][foe.kind]; u.charge = false; G.fx.push({ x: foe.x, y: foe.y, t: 0.3 }); }
+      if (u.kind === ARC) G.shots.push([u.x, u.y, foe.x, foe.y, u.owner]);
+      foe.pend = (foe.pend || 0) + dmg;
+      if (u.kind === ARC || bd < 64) { u.nx = u.x; u.ny = u.y; continue; }   // melee closes in, archers stand and shoot
+    }
+    // where to go: along the arrow, else to the holding spot
+    let tx, ty;
+    if (u.arrow && G.t < u.arrow.launch) {                            // mustering at the tail of the arrow
+      const p = u.arrow.pts[0]; tx = p[0] + Math.sin(u.id * 50) * 18; ty = p[1] + Math.cos(u.id * 50) * 12 + (u.owner === 1 ? 12 : -12);
+    } else if (u.arrow) {
+      const a = u.arrow, p = a.pts[Math.min(u.wp, a.pts.length - 1)];
+      tx = p[0] + Math.sin(u.id * 50) * 14; ty = p[1] + Math.cos(u.id * 50) * 14;
+      if (Math.hypot(tx - u.x, ty - u.y) < 16) { if (u.wp < a.pts.length - 1) u.wp++; else a.done = true; }
+    } else {
+      [tx, ty] = u.hold || [u.x, u.y];
+      if (u.kind !== ARC) {                                            // close with an intruder near the line
+        let e = null, ed = AGGRO * AGGRO;
+        for (const o of near(u, AGGRO)) { if (o.owner === u.owner) continue; const d2 = (o.x - u.x) ** 2 + (o.y - u.y) ** 2; if (d2 < ed) { ed = d2; e = o; } }
+        if (e) { tx = e.x; ty = e.y; }
+      }
+    }
+    [tx, ty] = steer(u, tx, ty);
+    const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy);
+    let sp = k.speed * (u.owner === 1 && G.t < G.cryUntil ? 1.4 : 1) * (u.kind === CAV && inForest(u.x, u.y) ? 0.5 : 1);
+    if (d > 2) {
+      const mv = Math.min(d, sp * dt);
+      let nx = u.x + dx / d * mv, ny = u.y + dy / d * mv;
+      if (inRiver(nx, ny)) { nx = u.x; ny = u.y; }
+      u.nx = nx; u.ny = ny; u.face = dx < 0 ? -1 : 1;
+      if (u.kind === CAV && !u.charge) { u.run += mv; if (u.run > 60) { u.charge = true; u.run = 0; } }
+    } else { u.nx = u.x; u.ny = u.y; }
+  }
+  // gentle separation so crowds do not stack into one pixel
+  for (const u of G.units) for (const e of near(u, 10)) {
+    if (e === u || e.owner !== u.owner) continue;
+    const dx = u.nx - e.nx, dy = u.ny - e.ny, d = Math.hypot(dx, dy);
+    if (d > 0 && d < 8) { const p = (8 - d) * 0.25; u.nx += dx / d * p; u.ny += dy / d * p; }
+  }
+  for (const u of G.units) {
+    if (u.pend) { u.hp -= u.pend; u.pend = 0; }
+    if (!inRiver(u.nx, u.ny)) { u.x = Math.max(8, Math.min(W - 8, u.nx)); u.y = Math.max(TOP + 4, Math.min(BOT - 4, u.ny)); }
+  }
+  const dead = G.units.filter(u => u.hp <= 0); for (const u of dead) G.stats[3 - u.owner]++;
+  G.units = G.units.filter(u => u.hp > 0);
+  for (const fx of G.fx) fx.t -= dt; G.fx = G.fx.filter(f => f.t > 0);
+
+  // territory: a soldier claims the cell he stands on if no enemy contests it and it touches his land
+  G.terrT -= dt;
+  if (G.terrT <= 0) {
+    G.terrT = 0.2;
+    const pres = new Int16Array(G.own.length * 2);
+    for (const u of G.units) pres[cellOf(u.x, u.y) * 2 + u.owner - 1]++;
+    let changed = false;
+    for (let i = 0; i < G.own.length; i++) {
+      const r = pres[i * 2], b = pres[i * 2 + 1]; if (!r === !b) continue;
+      const side = r ? 1 : 2; if (G.own[i] === side) continue;
+      const nb = [i - 1, i + 1, i - COLS, i + COLS];
+      if (nb.some(j => j >= 0 && j < G.own.length && G.own[j] === side)) { G.own[i] = side; changed = true; }
+    }
+    // land cut off from its owner's camp side falls to the encircler: cheap flood from each camp
+    if (changed) { encircle(); shade = null; }
+  }
+  G.frontT -= dt; if (G.frontT <= 0) { G.frontT = 0.5; updateFront(); }
+  checkEnd();
+}
+function encircle() {
+  for (const side of [1, 2]) {
+    const seen = new Uint8Array(G.own.length), q = [cellOf(CAMP[side].x, CAMP[side].y)];
+    if (G.own[q[0]] !== side) continue;
+    seen[q[0]] = 1;
+    while (q.length) { const i = q.pop(); for (const j of [i - 1, i + 1, i - COLS, i + COLS]) if (j >= 0 && j < G.own.length && !seen[j] && G.own[j] === side && !((i % COLS === 0 && j === i - 1) || (i % COLS === COLS - 1 && j === i + 1))) { seen[j] = 1; q.push(j); } }
+    for (let i = 0; i < G.own.length; i++) if (G.own[i] === side && !seen[i]) G.own[i] = 3 - side;
+  }
+}
+function share() { let r = 0, n = 0; for (let i = Math.floor(TOP / CELL) * COLS; i < Math.floor(BOT / CELL) * COLS; i++) { n++; if (G.own[i] === 1) r++; } return r / n; }
+function checkEnd() {
+  const s = share();
+  let win = 0, why = '';
+  for (const side of [1, 2]) {
+    const enemyCamp = CAMP[3 - side];
+    const at = G.units.filter(u => u.owner === side && Math.hypot(u.x - enemyCamp.x, u.y - enemyCamp.y) < 30).length;
+    const guards = G.units.filter(u => u.owner === 3 - side && Math.hypot(u.x - enemyCamp.x, u.y - enemyCamp.y) < 70).length;
+    if (at >= 3 && guards === 0) { win = side; why = side === 1 ? 'Лагерь врага взят!' : 'Враг ворвался в ваш лагерь.'; }
+  }
+  if (!win && s >= 0.8) { win = 1; why = 'Рим держит 80% земли.'; }
+  if (!win && s <= 0.2) { win = 2; why = 'Враг держит 80% земли.'; }
+  if (!win && G.t >= 240) { win = s >= 0.5 ? 1 : 2; why = 'Время вышло: ' + Math.round(s * 100) + '% земли у Рима.'; }
+  if (win) {
+    G.over = true;
+    $('ovT').textContent = win === 1 ? 'Победа!' : 'Поражение';
+    $('ovP').textContent = why + ' Время боя ' + clock(G.t) + ' · убито врагов ' + G.stats[1] + ' · потери ' + G.stats[2] + '.';
+    $('over').hidden = false;
+  }
+}
+
+// ---------------------------------------------------------------- drawing
+const BG = (() => {
+  const c = document.createElement('canvas'); c.width = W * DPR; c.height = H * DPR;
+  const g = c.getContext('2d'); g.scale(DPR, DPR);
+  let s = 7; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  g.fillStyle = '#e6d6ad'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 26; i++) { g.fillStyle = r() < .5 ? 'rgba(201,178,120,.22)' : 'rgba(245,234,200,.3)'; g.beginPath(); g.ellipse(r() * W, r() * H, 30 + r() * 90, 20 + r() * 60, r() * 3, 0, Math.PI * 2); g.fill(); }
+  // river and bridges
+  g.fillStyle = '#5d8fbf'; g.fillRect(0, RIVER_Y0, W, RIVER_Y1 - RIVER_Y0);
+  g.strokeStyle = 'rgba(40,60,90,.7)'; g.lineWidth = 2; g.strokeRect(-2, RIVER_Y0, W + 4, RIVER_Y1 - RIVER_Y0);
+  for (const [a, b] of BRIDGES) {
+    g.fillStyle = '#8a6a3c'; g.fillRect(a, RIVER_Y0 - 6, b - a, RIVER_Y1 - RIVER_Y0 + 12);
+    g.strokeStyle = '#4a3420'; g.lineWidth = 1.4; g.strokeRect(a, RIVER_Y0 - 6, b - a, RIVER_Y1 - RIVER_Y0 + 12);
+    for (let x = a + 5; x < b; x += 7) { g.beginPath(); g.moveTo(x, RIVER_Y0 - 6); g.lineTo(x, RIVER_Y1 + 6); g.stroke(); }
+  }
+  // hills (archer range) and forests (slow cavalry)
+  for (const h of HILLS) {
+    g.fillStyle = 'rgba(160,125,80,.25)'; g.beginPath(); g.arc(h.x, h.y, h.r, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(74,52,32,.55)'; g.setLineDash([3, 4]); g.stroke(); g.setLineDash([]);
+    for (const [dx, sc] of [[-16, 14], [8, 18], [24, 12]]) { g.fillStyle = '#cdb98c'; g.strokeStyle = '#4a3420'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(h.x + dx - sc, h.y + 10); g.lineTo(h.x + dx, h.y + 10 - sc * 1.3); g.lineTo(h.x + dx + sc, h.y + 10); g.closePath(); g.fill(); g.stroke(); }
+  }
+  for (const f of FORESTS) for (let i = 0; i < 22; i++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * f.r, x = f.x + Math.cos(a) * d, y = f.y + Math.sin(a) * d;
+    g.fillStyle = 'rgba(0,0,0,.15)'; g.beginPath(); g.ellipse(x + 2, y + 4, 7, 3, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = r() < .5 ? '#4f6b2f' : '#5e7d3a'; g.beginPath(); g.arc(x, y, 6 + r() * 3, 0, Math.PI * 2); g.fill();
+  }
+  // camps
+  for (const side of [1, 2]) {
+    const { x, y } = CAMP[side], col = side === 1 ? '#c0261b' : '#2f6fd6';
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 4, 34, 10, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = col; g.strokeStyle = '#4a3420'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(x - 26, y); g.lineTo(x, y - 36); g.lineTo(x + 26, y); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#2a1c10'; g.beginPath(); g.moveTo(x - 8, y); g.lineTo(x, y - 18); g.lineTo(x + 8, y); g.fill();
+    g.beginPath(); g.moveTo(x, y - 36); g.lineTo(x, y - 54); g.stroke();
+    g.fillStyle = col; g.beginPath(); g.moveTo(x, y - 54); g.lineTo(x + 16, y - 49); g.lineTo(x, y - 44); g.fill();
+  }
+  return c;
+})();
+let shade = null;                                                     // territory tint, rebuilt when land changes
+function territory() {
+  if (shade) return shade;
+  const c = document.createElement('canvas'); c.width = COLS; c.height = ROWS;
+  const g = c.getContext('2d'), img = g.createImageData(COLS, ROWS);
+  for (let i = 0; i < G.own.length; i++) {
+    const red = G.own[i] === 1;
+    img.data[i * 4] = red ? 205 : 60; img.data[i * 4 + 1] = red ? 50 : 120; img.data[i * 4 + 2] = red ? 40 : 220; img.data[i * 4 + 3] = 78;
+  }
+  g.putImageData(img, 0, 0);
+  // the front: edges between owners, drawn crisp on top of the soft tint
+  const f = document.createElement('canvas'); f.width = W * DPR; f.height = H * DPR;
+  const fg = f.getContext('2d'); fg.scale(DPR, DPR);
+  fg.imageSmoothingEnabled = true; fg.drawImage(c, 0, 0, COLS * CELL, ROWS * CELL);
+  fg.strokeStyle = 'rgba(42,28,16,.95)'; fg.lineWidth = 4; fg.lineCap = 'round'; fg.beginPath();
+  for (let r = 0; r < ROWS; r++) for (let cc = 0; cc < COLS; cc++) {
+    const i = r * COLS + cc, o = G.own[i];
+    if (cc < COLS - 1 && G.own[i + 1] !== o) { fg.moveTo((cc + 1) * CELL, r * CELL); fg.lineTo((cc + 1) * CELL, (r + 1) * CELL); }
+    if (r < ROWS - 1 && G.own[i + COLS] !== o) { fg.moveTo(cc * CELL, (r + 1) * CELL); fg.lineTo((cc + 1) * CELL, (r + 1) * CELL); }
+  }
+  fg.stroke();
+  return (shade = f);
+}
+function drawArrow(pts, col, alpha, w, t) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.setLineDash([18, 9]); ctx.lineDashOffset = -t * 30;
+  ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.setLineDash([]);
+  if (pts.length > 1) {
+    const [x1, y1] = pts[pts.length - 2], [x2, y2] = pts[pts.length - 1], a = Math.atan2(y2 - y1, x2 - x1);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x2 + Math.cos(a) * w * 1.4, y2 + Math.sin(a) * w * 1.4);
+    ctx.lineTo(x2 + Math.cos(a + 2.4) * w * 1.6, y2 + Math.sin(a + 2.4) * w * 1.6); ctx.lineTo(x2 + Math.cos(a - 2.4) * w * 1.6, y2 + Math.sin(a - 2.4) * w * 1.6); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawUnit(u) {
+  ctx.save(); ctx.translate(u.x, u.y); ctx.scale(1.5, 1.5); ctx.translate(-u.x, -u.y);
+  const col = u.owner === 1 ? '#c0261b' : '#2f6fd6', dark = u.owner === 1 ? '#7d1d16' : '#1d4a9a';
+  const x = u.x, y = u.y;
+  if (u.kind === CAV) {
+    ctx.fillStyle = '#7a4a2a'; ctx.beginPath(); ctx.ellipse(x, y + 1, 5.5, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + u.face * 5, y - 1.5, 2.2, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col; ctx.fillRect(x - 1.8, y - 6, 3.6, 4.5);
+    ctx.fillStyle = '#e0b48a'; ctx.fillRect(x - 1.3, y - 8, 2.6, 2.2);
+    if (u.charge) { ctx.fillStyle = '#facc15'; ctx.fillRect(x - 1, y - 11, 2, 2); }
+  } else {
+    ctx.fillStyle = col; ctx.fillRect(x - 2, y - 3, 4, 6);
+    ctx.fillStyle = u.kind === INF ? '#9aa0a8' : '#e0b48a'; ctx.fillRect(x - 1.6, y - 5.5, 3.2, 2.6);
+    if (u.kind === INF) { ctx.fillStyle = dark; ctx.fillRect(x + u.face * 2.2 - 1, y - 2.5, 2.4, 5); }
+    else { ctx.strokeStyle = '#5a3d20'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x + u.face * 3, y - 1, 3, -1.2, 1.2); ctx.stroke(); }
+  }
+  if (u.hp < u.max) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(x - 3, y + 4, 6, 1.4); ctx.fillStyle = '#6fd17a'; ctx.fillRect(x - 3, y + 4, 6 * Math.max(0, u.hp / u.max), 1.4); }
+  ctx.restore();
+}
+function draw(t) {
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(BG, 0, 0, W, H);
+  ctx.drawImage(territory(), 0, 0, W, H);
+  // rubezh lines
+  for (const side of [1, 2]) {
+    const l = G.lines[side]; if (!l) continue;
+    ctx.save(); ctx.strokeStyle = side === 1 ? '#7d1d16' : '#1d4a9a'; ctx.lineWidth = 4; ctx.setLineDash([10, 6]); ctx.lineDashOffset = -t * 12;
+    ctx.beginPath(); l.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.restore();
+  }
+  for (const a of G.arrows) {
+    drawArrow(a.pts, a.owner === 1 ? '#c0261b' : '#2f6fd6', a.owner === 1 ? 0.8 : 0.45, a.owner === 1 ? 11 : 8, t);
+    if (G.t < a.launch) {
+      const [x, y] = a.pts[0], k = (a.launch - G.t) / GATHER;
+      ctx.strokeStyle = a.owner === 1 ? 'rgba(192,38,27,.9)' : 'rgba(47,111,214,.8)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - k)); ctx.stroke();
+      if (a.owner === 1) { ctx.font = '700 12px Alegreya Sans, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#2a1c10'; ctx.fillText('сбор', x, y - 36); }
+    }
+  }
+  if (stroke && stroke.pts.length > 1) drawArrow(stroke.pts, mode === 'line' ? '#7d1d16' : '#c0261b', 0.5, mode === 'line' ? 5 : 11, t);
+  ctx.lineWidth = 1;
+  for (const [x1, y1, x2, y2, o] of G.shots) { ctx.strokeStyle = o === 1 ? 'rgba(125,29,22,.6)' : 'rgba(29,74,154,.6)'; ctx.beginPath(); ctx.moveTo(x1, y1 - 4); ctx.lineTo(x2, y2 - 3); ctx.stroke(); }
+  const order = G.units.slice().sort((a, b) => a.y - b.y);
+  for (const u of order) drawUnit(u);
+  for (const f of G.fx) { ctx.strokeStyle = 'rgba(255,215,106,' + f.t * 3 + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.x, f.y, 10 - f.t * 20, 0, Math.PI * 2); ctx.stroke(); }
+  // HUD
+  const s = share();
+  $('tb').style.width = (s * 100).toFixed(1) + '%';
+  $('pR').textContent = 'Рим ' + Math.round(s * 100) + '%'; $('pB').textContent = Math.round((1 - s) * 100) + '%';
+  $('clock').textContent = clock(Math.max(0, 240 - G.t));
+  const mine = G.units.filter(u => u.owner === 1).length, theirs = G.units.length - mine;
+  $('sub').textContent = 'Легион ' + mine + ' · враг ' + theirs + ' · стрелок ' + G.arrows.filter(a => a.owner === 1).length + '/3';
+}
+const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+// ---------------------------------------------------------------- input: draw arrows and lines, tap an arrow to cancel
+let mode = 'arrow', stroke = null, started = false;
+const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+cv.addEventListener('pointerdown', e => {
+  if (G.over || !started) return;
+  const p = pos(e); if (p[1] < TOP || p[1] > BOT) return;
+  stroke = { pts: [p], t0: performance.now() };
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+});
+cv.addEventListener('pointermove', e => { if (stroke) stroke.pts.push(pos(e)); });
+cv.addEventListener('pointerup', e => {
+  if (!stroke) return;
+  const s = stroke; stroke = null;
+  const len = s.pts.reduce((L, p, i) => i ? L + Math.hypot(p[0] - s.pts[i - 1][0], p[1] - s.pts[i - 1][1]) : 0, 0);
+  if (len < 30) {                                                     // a tap: cancel the arrow under the finger
+    const [x, y] = s.pts[0];
+    const hit = G.arrows.find(a => a.owner === 1 && a.pts.some(([px, py]) => Math.hypot(px - x, py - y) < 18));
+    if (hit) { removeArrow(hit); say('Стрелка снята — отряды вернулись на фронт'); }
+    else if (G.lines[1] && G.lines[1].some(([px, py]) => Math.hypot(px - x, py - y) < 18)) { G.lines[1] = null; say('Рубеж снят'); }
+    return;
+  }
+  const pts = simplify(s.pts);
+  if (mode === 'line') { G.lines[1] = pts; say('Рубеж назначен — свободные отряды встают на него'); return; }
+  if (ownAt(pts[0][0], pts[0][1]) !== 1) { say('Стрелку начинайте со своей земли'); return; }
+  const a = addArrow(1, pts);
+  if (a) { const n = G.units.filter(u => u.arrow === a).length; say(n ? 'Сбор! ' + n + ' воинов ударят через 3 секунды' : 'Рядом нет свободных войск — подтянутся с фронта'); }
+});
+cv.addEventListener('pointercancel', () => { stroke = null; });
+const setMode = m => { mode = m; $('mArrow').setAttribute('aria-pressed', String(m === 'arrow')); $('mLine').setAttribute('aria-pressed', String(m === 'line')); };
+$('mArrow').addEventListener('click', () => setMode('arrow'));
+$('mLine').addEventListener('click', () => setMode('line'));
+$('mType').addEventListener('click', () => {
+  G.type[1] = (G.type[1] + 1) % 3;
+  $('typeLbl').textContent = 'Набор: ' + KIND[G.type[1]].name;
+  say('Лагерь шлёт: ' + KIND[G.type[1]].name);
+});
+$('mCry').addEventListener('click', () => {
+  if (G.cryUsed || G.over) return;
+  G.cryUsed = true; G.cryUntil = G.t + 12; $('mCry').disabled = true; say('Боевой клич! Легион на 40% быстрее 12 с');
+});
+$('restart').addEventListener('click', () => restart());
+$('ovB').addEventListener('click', () => restart());
+$('helpOk').addEventListener('click', () => { $('help').hidden = true; started = true; });
+function restart() { newBattle(); $('over').hidden = true; $('mCry').disabled = false; G.type[1] = INF; $('typeLbl').textContent = 'Набор: пехота'; started = true; $('help').hidden = true; }
+let toastT = 0;
+function say(text) { const t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+
+// ---------------------------------------------------------------- loop
+newBattle();
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  step(dt); draw(now / 1000);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.__front = { get G() { return G; }, step, addArrow, newBattle, share, start: () => { started = true; } };
+</script>

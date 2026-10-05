@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="1688" viewBox="0 0 390 844">
+<defs>
+ <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#18221c"/><stop offset="1" stop-color="#0e1511"/></linearGradient>
+ <linearGradient id="panel" x2="0" y2="1"><stop stop-color="#2a372d"/><stop offset="1" stop-color="#1b251e"/></linearGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#f1d083"/><stop offset="1" stop-color="#ba8943"/></linearGradient>
+ <pattern id="grass" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#62754f"/><circle cx="3" cy="5" r=".7" fill="#84916b"/><path d="M8 12l3-2" stroke="#536846" stroke-width="1"/></pattern>
+ <pattern id="water" width="18" height="13" patternUnits="userSpaceOnUse"><rect width="18" height="13" fill="#3d6975"/><path d="M1 4q4-3 8 0t8 0M-5 10q4-3 8 0t8 0t8 0" fill="none" stroke="#6b9296" stroke-width="1" opacity=".7"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#08100b" flood-opacity=".55"/></filter>
+</defs>
+<rect width="390" height="844" rx="28" fill="url(#bg)"/>
+<!-- top bar -->
+<text x="20" y="28" fill="#e9e2cc" font-family="Arial" font-size="12" font-weight="700">9:41</text><text x="335" y="28" fill="#e9e2cc" font-family="Arial" font-size="11">▮▮▮ ◉</text>
+<path d="M18 55l8-8m-8 8 8 8" stroke="#eee5ce" stroke-width="2" fill="none"/>
+<text x="42" y="54" fill="#f1ead8" font-family="Georgia" font-size="17" font-weight="700" letter-spacing=".6">ШТУРМ ПОСЕЛЕНИЯ</text>
+<text x="42" y="72" fill="#aeb6a4" font-family="Arial" font-size="9" letter-spacing="1">ЗАПАДНЫЕ ВОРОТА · ХОД 4</text>
+<rect x="324" y="42" width="48" height="34" rx="10" fill="#263229" stroke="#59664e"/><text x="348" y="64" fill="#e6ddc6" text-anchor="middle" font-family="Arial" font-size="15">Ⅱ</text>
+<!-- objective / turn strip -->
+<rect x="16" y="88" width="358" height="61" rx="13" fill="url(#panel)" stroke="#59664e"/>
+<path d="M35 111l10-7 10 7v16H35z" fill="#826746" stroke="#d0b37b" stroke-width="1.5"/><path d="M31 112l14-10 14 10-4 4-10-7-10 7z" fill="#a65840"/><path d="M42 118h7v9h-7z" fill="#392f22"/>
+<text x="67" y="108" fill="#edcf83" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1">ГЛАВНАЯ ЦЕЛЬ</text><text x="67" y="127" fill="#f4edda" font-family="Georgia" font-size="14" font-weight="700">Захватить площадь</text>
+<rect x="250" y="102" width="105" height="9" rx="5" fill="#111813"/><rect x="250" y="102" width="42" height="9" rx="5" fill="url(#gold)"/><text x="250" y="129" fill="#aeb6a4" font-family="Arial" font-size="9">Удержание</text><text x="355" y="129" fill="#edcf83" text-anchor="end" font-family="Arial" font-size="10" font-weight="700">40%</text>
+<!-- grid board -->
+<rect x="16" y="161" width="358" height="410" rx="15" fill="url(#grass)" stroke="#899272" stroke-width="1.2"/>
+<!-- sea wedges -->
+<path d="M16 161h82L82 205l-66 18zm358 0v73l-45 4-22-77zM16 525l52-16 21 62H16zm358-23-46 20-8 49h54z" fill="url(#water)"/>
+<!-- 7x7 cell grid, board x25..365 y170..562, cell 48.57 x56 -->
+<g stroke="#bdc39e" stroke-width="1" opacity=".42">
+ <path d="M74 170v392M123 170v392M172 170v392M221 170v392M270 170v392M319 170v392"/>
+ <path d="M25 226h340M25 282h340M25 338h340M25 394h340M25 450h340M25 506h340"/>
+</g>
+<!-- movement highlights and planned route -->
+<g fill="#e7ca73" fill-opacity=".13" stroke="#e7ca73" stroke-opacity=".7" stroke-width="1.4">
+ <rect x="124" y="339" width="48" height="54" rx="6"/><rect x="173" y="339" width="47" height="54" rx="6"/><rect x="124" y="395" width="48" height="54" rx="6"/><rect x="173" y="395" width="47" height="54" rx="6"/><rect x="221" y="395" width="48" height="54" rx="6"/>
+</g>
+<path d="M99 421h50v-55h46" fill="none" stroke="#f0ce76" stroke-width="3" stroke-dasharray="5 5"/><path d="M191 360l9 6-9 6" fill="none" stroke="#f0ce76" stroke-width="2"/>
+<!-- defensive wall / gate across row -->
+<g filter="url(#shadow)"><rect x="74" y="278" width="196" height="14" rx="3" fill="#887659" stroke="#d0b77f" stroke-width="1.5"/><path d="M82 278v14m18-14v14m18-14v14m18-14v14m18-14v14m18-14v14m18-14v14m18-14v14m18-14v14m18-14v14" stroke="#564b36" stroke-width="2"/><rect x="155" y="274" width="34" height="22" rx="3" fill="#583b2d" stroke="#d2a36b" stroke-width="2"/><path d="M161 278v12m7-12v12m7-12v12m7-12v12" stroke="#d2a36b"/></g>
+<rect x="128" y="257" width="84" height="18" rx="8" fill="#152019" stroke="#a89468"/><text x="170" y="269" fill="#e9d5a2" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700">ЗАПАДНЫЕ ВОРОТА</text>
+<!-- target square / capture icon -->
+<g transform="translate(196 218)" filter="url(#shadow)"><ellipse cy="14" rx="25" ry="8" fill="#27332a"/><path d="M-18 0 0-14 18 0v15h-36z" fill="#846c48" stroke="#dbc28b" stroke-width="1.5"/><path d="M-22 0 0-19 22 0l-4 4L0-11-18 4z" fill="#a6533c" stroke="#d49b64"/><rect x="-4" y="5" width="8" height="10" fill="#473626"/><path d="M0-20v-21" stroke="#35291b" stroke-width="2"/><path d="M1-40h19l-8 6 8 6H1z" fill="#d9b45e"/></g>
+<rect x="160" y="236" width="73" height="17" rx="8" fill="#152019" stroke="#d4b568"/><text x="196" y="248" fill="#f2d88f" text-anchor="middle" font-family="Arial" font-size="8" font-weight="800">ШТАБ ЦЕЛЬ</text>
+<!-- defenders -->
+<g font-family="Arial" text-anchor="middle" filter="url(#shadow)">
+ <circle cx="147" cy="319" r="17" fill="#512f29" stroke="#d28a6f" stroke-width="2"/><text x="147" y="325" fill="#f5dfc9" font-size="16">⚔</text><rect x="132" y="338" width="30" height="13" rx="6" fill="#442922"/><text x="147" y="347" fill="#f1d4c2" font-size="8" font-weight="700">8</text>
+ <circle cx="244" cy="375" r="17" fill="#512f29" stroke="#d28a6f" stroke-width="2"/><text x="244" y="381" fill="#f5dfc9" font-size="16">🏹</text><rect x="229" y="394" width="30" height="13" rx="6" fill="#442922"/><text x="244" y="403" fill="#f1d4c2" font-size="8" font-weight="700">6</text>
+ <circle cx="293" cy="319" r="17" fill="#512f29" stroke="#d28a6f" stroke-width="2"/><text x="293" y="325" fill="#f5dfc9" font-size="16">🛡</text><rect x="278" y="338" width="30" height="13" rx="6" fill="#442922"/><text x="293" y="347" fill="#f1d4c2" font-size="8" font-weight="700">10</text>
+</g>
+<!-- friendly four generals / squads -->
+<g font-family="Arial" text-anchor="middle" filter="url(#shadow)">
+ <circle cx="99" cy="422" r="22" fill="#273b33" stroke="#b1c895" stroke-width="2.5"/><text x="99" y="429" fill="#f3ead1" font-size="19">🛡</text><circle cx="117" cy="407" r="8" fill="#d8bd72"/><text x="117" y="410" fill="#2a2519" font-size="8" font-weight="900">1</text><rect x="84" y="447" width="30" height="13" rx="6" fill="#18231c" stroke="#8da17a"/><text x="99" y="456" fill="#e8ecd9" font-size="8" font-weight="700">12</text>
+ <circle cx="99" cy="506" r="20" fill="#273b33" stroke="#7f9380" stroke-width="2"/><text x="99" y="512" fill="#e5ddc7" font-size="17">🏹</text><circle cx="115" cy="493" r="7" fill="#a9b49c"/><text x="115" y="496" fill="#20271e" font-size="7" font-weight="900">2</text><rect x="84" y="529" width="30" height="13" rx="6" fill="#18231c"/><text x="99" y="538" fill="#e8ecd9" font-size="8" font-weight="700">10</text>
+ <circle cx="293" cy="450" r="20" fill="#273b33" stroke="#7f9380" stroke-width="2"/><text x="293" y="456" fill="#e5ddc7" font-size="17">🐎</text><circle cx="309" cy="437" r="7" fill="#a9b49c"/><text x="309" y="440" fill="#20271e" font-size="7" font-weight="900">3</text><rect x="278" y="473" width="30" height="13" rx="6" fill="#18231c"/><text x="293" y="482" fill="#e8ecd9" font-size="8" font-weight="700">8</text>
+ <circle cx="196" cy="478" r="24" fill="#304739" stroke="#f0d180" stroke-width="3"/><text x="196" y="485" fill="#f4e6bf" font-size="20">🔱</text><circle cx="215" cy="460" r="8" fill="#e0bf70"/><text x="215" y="463" fill="#272216" font-size="8" font-weight="900">4</text><rect x="178" y="505" width="36" height="14" rx="7" fill="#17231b" stroke="#d6bd75"/><text x="196" y="515" fill="#f1d992" font-size="8" font-weight="800">КОПЬЯ</text>
+</g>
+<!-- selected cell marker and small instruction -->
+<circle cx="196" cy="366" r="7" fill="#f2d47c" stroke="#fff0bb" stroke-width="1.5"/><rect x="24" y="174" width="90" height="20" rx="9" fill="#17201be8" stroke="#8a966f"/><text x="69" y="188" fill="#e2e6d3" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700">ХОД ИГРОКА</text>
+<!-- selected squad card -->
+<rect x="16" y="582" width="358" height="49" rx="11" fill="#222e26" stroke="#53624d"/><circle cx="41" cy="606" r="15" fill="#344b3a" stroke="#e2c36e" stroke-width="1.5"/><text x="41" y="612" fill="#f1e6c5" text-anchor="middle" font-family="Arial" font-size="17">🔱</text>
+<text x="66" y="601" fill="#f0e8d5" font-family="Arial" font-size="11" font-weight="800">ГЕНЕРАЛ МАРК · КОПЕЙЩИКИ</text><text x="66" y="617" fill="#bdc6b2" font-family="Arial" font-size="9">12 бойцов　♥♥♥　 строй держится</text><rect x="320" y="592" width="42" height="26" rx="8" fill="#394737"/><text x="341" y="609" fill="#ebd28f" text-anchor="middle" font-family="Arial" font-size="9" font-weight="800">ХОД 2</text>
+<!-- roster -->
+<text x="19" y="651" fill="#eee6d2" font-family="Georgia" font-size="13" font-weight="700">ОТРЯДЫ</text><text x="370" y="651" fill="#9ea895" text-anchor="end" font-family="Arial" font-size="8">4 ГЕНЕРАЛА</text>
+<g font-family="Arial" text-anchor="middle">
+ <rect x="16" y="659" width="82" height="50" rx="10" fill="#2c3b30" stroke="#e0c274" stroke-width="1.5"/><text x="33" y="680" fill="#f1e6c5" font-size="16">🔱</text><text x="60" y="678" fill="#f3eddb" font-size="8" font-weight="800">КОПЬЯ</text><text x="60" y="694" fill="#d5d9c9" font-size="8">12 · выбраны</text>
+ <rect x="105" y="659" width="82" height="50" rx="10" fill="#202b24" stroke="#4b5a47"/><text x="122" y="680" fill="#eee3c9" font-size="16">🛡</text><text x="149" y="678" fill="#e4e4d5" font-size="8" font-weight="800">МЕЧИ</text><text x="149" y="694" fill="#bdc6b2" font-size="8">12 бойцов</text>
+ <rect x="194" y="659" width="82" height="50" rx="10" fill="#202b24" stroke="#4b5a47"/><text x="211" y="680" fill="#eee3c9" font-size="16">🏹</text><text x="238" y="678" fill="#e4e4d5" font-size="8" font-weight="800">ЛУКИ</text><text x="238" y="694" fill="#bdc6b2" font-size="8">10 бойцов</text>
+ <rect x="283" y="659" width="91" height="50" rx="10" fill="#202b24" stroke="#4b5a47"/><text x="301" y="680" fill="#eee3c9" font-size="16">🐎</text><text x="332" y="678" fill="#e4e4d5" font-size="8" font-weight="800">КОННИЦА</text><text x="332" y="694" fill="#bdc6b2" font-size="8">8 бойцов</text>
+</g>
+<!-- action tray -->
+<rect x="16" y="721" width="358" height="93" rx="14" fill="url(#panel)" stroke="#56634d"/>
+<text x="28" y="741" fill="#e9dfc8" font-family="Arial" font-size="9" font-weight="800" letter-spacing=".7">ПРИКАЗ · КОПЕЙЩИКИ</text>
+<g font-family="Arial" text-anchor="middle" font-weight="800">
+ <rect x="25" y="751" width="76" height="48" rx="10" fill="#3b4b39" stroke="#e2c574"/><text x="63" y="772" fill="#f5e6bd" font-size="16">⇧</text><text x="63" y="790" fill="#f0dfaa" font-size="8">ДВИНУТЬ</text>
+ <rect x="108" y="751" width="76" height="48" rx="10" fill="#28352b" stroke="#56634d"/><text x="146" y="772" fill="#e3ddc9" font-size="16">⚔</text><text x="146" y="790" fill="#d9ddcf" font-size="8">АТАКА</text>
+ <rect x="191" y="751" width="76" height="48" rx="10" fill="#28352b" stroke="#56634d"/><text x="229" y="772" fill="#e3ddc9" font-size="16">🔱</text><text x="229" y="790" fill="#d9ddcf" font-size="8">УПОР КОПИЙ</text>
+ <rect x="274" y="751" width="88" height="48" rx="10" fill="#28352b" stroke="#56634d"/><text x="318" y="772" fill="#e3ddc9" font-size="16">↶</text><text x="318" y="790" fill="#d9ddcf" font-size="8">ОТСТУПИТЬ</text>
+</g>
+<text x="195" y="833" fill="#778071" text-anchor="middle" font-family="Arial" font-size="8" letter-spacing="1">ЛЕГИОНЫ · КОНЦЕПТ ТАКТИЧЕСКОГО БОЯ</text>
+</svg>

@@ -1,0 +1,326 @@
+<title>Интерфейс боя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  /* the same studio wall as the screen-layout board: dark command tent, parchment-gold accents */
+  :root { --bg: #17130e; --panel: #1e1913; --ink: #efe6d2; --muted: #b8aa8c; --gold: #d9a441; --line: #3a3024;
+          --display: 'Cormorant SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 16px 56px; }
+  header { max-width: 760px; margin-bottom: 26px; }
+  h1 { font-family: var(--display); font-size: 40px; line-height: 1.05; margin: 0 0 8px; letter-spacing: .02em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); font-size: 16px; }
+  section { margin-top: 38px; }
+  section > h2 { font-family: var(--display); font-size: 30px; margin: 0 0 4px; letter-spacing: .02em; }
+  section > .lead { margin: 0 0 18px; color: var(--muted); max-width: 760px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+  .card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .phone { width: 100%; max-width: 320px; border-radius: 22px; overflow: hidden; background: #3f2717; box-shadow: 0 0 0 1px var(--line), 0 14px 36px rgba(0,0,0,.55); line-height: 0; }
+  .sheetbox { max-width: 960px; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); line-height: 0; }
+  canvas { display: block; width: 100%; height: auto; }
+  .card h2 { margin: 2px 0 0; font-family: var(--display); font-size: 25px; letter-spacing: .03em; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .card p { margin: 0; font-size: 14.5px; }
+  .card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; font-size: 14px; color: var(--muted); }
+  .card li b { font-weight: 700; } .card li.plus b { color: #8fd18f; } .card li.minus b { color: #f0a090; }
+  .notes { max-width: 820px; margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 7px; color: var(--muted); font-size: 15px; }
+  .notes b { color: var(--ink); }
+  .reco { margin-top: 38px; padding: 18px 20px; border: 1px solid var(--gold); border-radius: 14px; background: var(--panel); max-width: 820px; }
+  .reco h3 { margin: 0 0 6px; font-family: var(--display); font-size: 26px; }
+  .reco p { margin: 0 0 6px; color: var(--muted); } .reco p:last-child { margin: 0; } .reco b { color: var(--ink); }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Интерфейс боя</h1>
+    <p>Знамёна отрядов, пять вариантов панели управления и три уровня зума. Все макеты на карте «Секции города», красные, зелёные, фиолетовые и жёлтые знамёна ваши, синие вражеские.</p>
+  </header>
+
+  <section>
+    <h2>Знамёна отрядов</h2>
+    <p class="lead">У каждого отряда своё знамя: своя форма полотнища, свой цвет и своя эмблема. Отряд виден издалека, и его не спутаешь по одному цвету, даже в чёрно-белом. Те же знамёна стоят на карточках, жетонах и в меню.</p>
+    <div class="sheetbox"><canvas id="sheet" width="1920" height="660" aria-label="Знамёна четырёх отрядов"></canvas></div>
+    <ul class="notes">
+      <li><b>Форма читается без цвета:</b> перекладина с полотнищем, вымпел, ласточкин хвост, квадрат. Это важно для людей, которые плохо различают цвета.</li>
+      <li><b>Враг всегда синий,</b> а форма знамени повторяет его класс, так видно, кто перед вами.</li>
+      <li><b>Выбранный отряд</b> подсвечивается золотым кольцом, раненый отряд опускает знамя ниже.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Панели управления</h2>
+    <p class="lead">Где живут карточки отрядов и кнопка навыка. Выбранный отряд на всех макетах Велиты, время при этом замедляется.</p>
+    <div class="grid">
+    <article class="card"><div class="phone"><canvas id="u1" width="640" height="1120" aria-label="Макет: Карточки снизу"></canvas></div>
+      <span class="tag">Панель 1</span><h2>Карточки снизу</h2><p>Как сейчас в прототипе: четыре карточки со знамёнами и здоровьем, справа большая кнопка навыка. Нижние 70 px заняты панелью.</p>
+      <ul><li class="plus"><b>Плюс:</b> привычно и надёжно, все четыре отряда всегда видны.</li><li class="minus"><b>Минус:</b> забирает место, поле короче на 70 px.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="u2" width="640" height="1120" aria-label="Макет: Знамёна слева"></canvas></div>
+      <span class="tag">Панель 2</span><h2>Знамёна слева</h2><p>Четыре круглые кнопки со знамёнами и кольцом здоровья в колонке слева, большая круглая кнопка навыка в правом нижнем углу. Поле идёт до самого низа.</p>
+      <ul><li class="plus"><b>Плюс:</b> под большим пальцем, много места на поле.</li><li class="minus"><b>Минус:</b> левая колонка может закрывать край карты.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="u3" width="640" height="1120" aria-label="Макет: Меню у отряда"></canvas></div>
+      <span class="tag">Панель 3</span><h2>Меню у отряда</h2><p>Нет нижней панели. Касаетесь отряда, и вокруг него кольцо: «Залп», «Стоять», «Назад». Жетоны отрядов в верхней строке.</p>
+      <ul><li class="plus"><b>Плюс:</b> всё внимание на поле, меню там, где смотрите.</li><li class="minus"><b>Минус:</b> у края экрана меню приходится сдвигать, пальцем можно закрыть отряд.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="u4" width="640" height="1120" aria-label="Макет: Знамёна на верёвке"></canvas></div>
+      <span class="tag">Панель 4</span><h2>Знамёна на верёвке</h2><p>Четыре знамени вывешены на верёвке сверху, как в военном лагере. Касание знамени выбирает отряд, раненый опускает знамя, навык по двойному касанию.</p>
+      <ul><li class="plus"><b>Плюс:</b> красиво, тема Рима, ничего лишнего.</li><li class="minus"><b>Минус:</b> знамёна мелкие, в бою можно промахнуться.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="u5" width="640" height="1120" aria-label="Макет: Мини-карта и зум"></canvas></div>
+      <span class="tag">Панель 5</span><h2>Мини-карта и зум</h2><p>Компактная панель: мини-карта с рамкой экрана, четыре узких карточки и круглая кнопка навыка. Справа на поле кнопки зума.</p>
+      <ul><li class="plus"><b>Плюс:</b> хорошо для больших карт, видно, где враг вне экрана.</li><li class="minus"><b>Минус:</b> самая плотная, мелкие элементы.</li></ul></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Зум</h2>
+    <p class="lead">Карта целиком помещается на экран, зум нужен для деталей: рассмотреть отряды и выбрать точное место. Три уровня на одной сцене.</p>
+    <div class="grid">
+    <article class="card"><div class="phone"><canvas id="z1" width="640" height="1120" aria-label="Макет: Общий вид"></canvas></div>
+      <span class="tag">Зум 1,0×</span><h2>Общий вид</h2><p>Весь город. Знамёна крупнее, чем сами воины: так отряды читаются сразу.</p>
+      <ul><li class="plus"><b>Плюс:</b> виден весь бой и все районы.</li><li class="minus"><b>Минус:</b> воины мелкие, деталей почти нет.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="z2" width="640" height="1120" aria-label="Макет: Крупнее"></canvas></div>
+      <span class="tag">Зум 1,6×</span><h2>Крупнее</h2><p>Камера на нижних районах. Различимы щиты и оружие, виден рельеф. Отряды ещё помещаются целиком.</p>
+      <ul><li class="plus"><b>Плюс:</b> удобно командовать у реки.</li><li class="minus"><b>Минус:</b> верхний край города уходит за экран.</li></ul></article>
+    <article class="card"><div class="phone"><canvas id="z3" width="640" height="1120" aria-label="Макет: Вплотную"></canvas></div>
+      <span class="tag">Зум 2,4×</span><h2>Вплотную</h2><p>Один отряд и его цель. Видны кровь, павшие, анимации. Маршрут рисуется поверх.</p>
+      <ul><li class="plus"><b>Плюс:</b> красота, лучше видно, кто кого бьёт.</li><li class="minus"><b>Минус:</b> тесно, лишь для разглядывания.</li></ul></article>
+    </div>
+    <ul class="notes">
+      <li><b>Жесты:</b> щипок двумя пальцами, двойное касание по отряду приближает на него, двойное касание по пустому месту возвращает общий вид.</li>
+      <li><b>Автозум:</b> при выборе отряда камера мягко приближается на 1,3×, а при отдаче приказа отъезжает назад. Можно отключить в настройках.</li>
+      <li><b>Следить за отрядом:</b> кнопка рядом со шкалой зума, камера идёт за выбранным отрядом.</li>
+      <li><b>Интерфейс не масштабируется:</b> знамёна, карточки и кнопки всегда одного размера, меняется только карта.</li>
+    </ul>
+  </section>
+
+  <section class="reco">
+    <h3>Что бы я взял</h3>
+    <p><b>Панель 2 (знамёна слева) и зум 1,0×–1,6×.</b> Колонка слева даёт больше всего места на поле и удобна большому пальцу. Знамёна на кнопках те же, что на поле, поэтому не надо искать соответствие.</p>
+    <p>Панель 3 (меню у отряда) хороша для тех, кому важно, чтобы глаза не бегали по экрану. Её можно сделать вариантом в настройках.</p>
+  </section>
+</div>
+<script>
+const DPR = 2, CW = 320, CH = 560, FY = 44, FH = 446, FB = FY + FH;     // canvas is drawn at 2×; field sits between the bars
+const INK = '#4a3420', RED = '#c0261b', BLUE = '#2f6fd6', GOLD = '#d9a441';
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function ctxOf(id) { const c = document.getElementById(id), g = c.getContext('2d'); g.scale(DPR, DPR); g.lineCap = 'round'; g.lineJoin = 'round'; return g; }
+
+// ---------------------------------------------------------------- shared pieces
+function grass(g, r) {
+  const gr = g.createLinearGradient(0, FY, 0, FB); gr.addColorStop(0, '#9fb06e'); gr.addColorStop(1, '#b9c689');
+  g.fillStyle = gr; g.fillRect(0, FY, CW, FH);
+  for (let i = 0; i < 40; i++) { g.fillStyle = r() < .5 ? 'rgba(110,145,65,.2)' : 'rgba(235,240,165,.24)'; g.beginPath(); g.ellipse(r() * CW, FY + r() * FH, 8 + r() * 26, 5 + r() * 14, r() * 3, 0, 7); g.fill(); }
+}
+function pine(g, x, y, k) {
+  k = k || 1; g.fillStyle = 'rgba(20,35,10,.25)'; g.beginPath(); g.ellipse(x + 3, y + 1, 7 * k, 2.6 * k, 0, 0, 7); g.fill();
+  g.fillStyle = '#5a3d20'; g.fillRect(x - 1, y - 3, 2, 4);
+  for (let l = 0; l < 3; l++) { const w = (8 - l * 2) * k, ty = y - 3 - l * 5 * k; g.fillStyle = ['#2c5a33', '#37693a', '#468048'][l]; g.beginPath(); g.moveTo(x - w, ty); g.lineTo(x, ty - 9 * k); g.lineTo(x + w, ty); g.fill(); }
+}
+function forest(g, r, x, y, w, h, n) { const t = []; for (let i = 0; i < n; i++) t.push([x + r() * w, y + r() * h, 0.8 + r() * 0.4]); t.sort((a, b) => a[1] - b[1]); t.forEach(([a, b, k]) => pine(g, a, b, k)); }
+function river(g, y0, y1, bridges, fords) {
+  g.fillStyle = '#5b97c2'; g.fillRect(0, y0, CW, y1 - y0); g.fillStyle = '#d4d6a0'; g.fillRect(0, y0 - 3, CW, 3); g.fillRect(0, y1, CW, 3);
+  g.strokeStyle = 'rgba(190,225,245,.75)'; g.lineWidth = 1.2; for (let x = 8; x < CW; x += 26) { g.beginPath(); g.moveTo(x, (y0 + y1) / 2); g.quadraticCurveTo(x + 5, (y0 + y1) / 2 - 3, x + 10, (y0 + y1) / 2); g.stroke(); }
+  (fords || []).forEach(x => { g.fillStyle = 'rgba(210,225,170,.6)'; g.fillRect(x - 14, y0, 28, y1 - y0); [0, 1, 2].forEach(i => { g.fillStyle = '#a4aab0'; g.beginPath(); g.ellipse(x - 9 + i * 9, (y0 + y1) / 2 + (i % 2 ? 3 : -3), 3.5, 2.4, 0, 0, 7); g.fill(); }); });
+  (bridges || []).forEach(x => { g.fillStyle = '#9b6f3d'; g.fillRect(x - 10, y0 - 3, 20, y1 - y0 + 6); g.strokeStyle = '#5a3d20'; g.lineWidth = 1; for (let y = y0; y < y1; y += 4) { g.beginPath(); g.moveTo(x - 10, y); g.lineTo(x + 10, y); g.stroke(); } g.fillStyle = '#5a3d20'; g.fillRect(x - 11, y0 - 3, 2, y1 - y0 + 6); g.fillRect(x + 9, y0 - 3, 2, y1 - y0 + 6); });
+}
+function road(g, pts, w) { g.strokeStyle = '#d6c08a'; g.lineWidth = w || 14; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); }
+function plateau(g, x, y, w, h, cliff) {
+  g.fillStyle = '#c4cf93'; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(255,255,220,.2)'; g.fillRect(x, y, w, h / 2);
+  const cg = g.createLinearGradient(0, y + h, 0, y + h + (cliff || 10)); cg.addColorStop(0, '#a58b66'); cg.addColorStop(1, '#5d4a33'); g.fillStyle = cg; g.fillRect(x, y + h, w, cliff || 10);
+  g.fillStyle = '#d9e2a8'; g.fillRect(x, y + h - 1, w, 1.5);
+  const sg = g.createLinearGradient(0, y + h + (cliff || 10), 0, y + h + (cliff || 10) + 12); sg.addColorStop(0, 'rgba(25,30,10,.32)'); sg.addColorStop(1, 'rgba(25,30,10,0)'); g.fillStyle = sg; g.fillRect(x, y + h + (cliff || 10), w, 12);
+}
+function ramp(g, x, y, w, h) { g.fillStyle = '#cfb785'; g.fillRect(x, y, w, h); g.strokeStyle = 'rgba(120,95,55,.55)'; g.lineWidth = 1; for (let k = -2; k < w / 5 + 2; k++) { g.beginPath(); g.moveTo(x + k * 6, y + h); g.lineTo(x + k * 6 + h, y); g.stroke(); } }
+function house(g, x, y, w, h, roof, tint) {
+  g.fillStyle = 'rgba(25,25,10,.22)'; g.beginPath(); g.ellipse(x + w / 2 + 3, y + h, w * 0.6, 3, 0, 0, 7); g.fill();
+  g.fillStyle = tint || '#d9cdb0'; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(x, y + h - 4, w, 4);
+  g.fillStyle = roof || '#b4562f'; g.beginPath(); g.moveTo(x - 2, y + 1); g.lineTo(x + w / 2, y - h * 0.55); g.lineTo(x + w + 2, y + 1); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x - 2, y + 1); g.lineTo(x + w / 2, y - h * 0.55); g.lineTo(x + w / 2, y + 1); g.closePath(); g.fill();
+  g.fillStyle = '#4a3420'; g.fillRect(x + w / 2 - 2, y + h - 7, 4, 7);
+}
+function palisade(g, x1, y1, x2, y2) {
+  const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 5));
+  for (let i = 0; i <= n; i++) { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n; g.fillStyle = '#8a6a3c'; g.fillRect(x - 1.8, y - 9, 3.6, 10); g.fillStyle = '#5a3d20'; g.beginPath(); g.moveTo(x - 1.8, y - 9); g.lineTo(x, y - 13); g.lineTo(x + 1.8, y - 9); g.fill(); g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 0.4, y - 9, 1.4, 10); }
+}
+function ditch(g, x, y, w) { g.fillStyle = '#6b5a44'; g.fillRect(x, y, w, 6); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x, y + 3, w, 3); g.strokeStyle = '#4a3a28'; g.lineWidth = 1; for (let i = x + 4; i < x + w; i += 8) { g.beginPath(); g.moveTo(i, y + 1); g.lineTo(i + 3, y + 5); g.stroke(); } }
+function tower(g, x, y) {
+  g.fillStyle = 'rgba(25,25,20,.25)'; g.beginPath(); g.ellipse(x + 3, y + 10, 12, 4, 0, 0, 7); g.fill();
+  const bg = g.createLinearGradient(x - 11, 0, x + 11, 0); bg.addColorStop(0, '#b2a998'); bg.addColorStop(1, '#6a6256'); g.fillStyle = bg; g.fillRect(x - 10, y - 4, 20, 14);
+  g.fillStyle = '#d3cab8'; g.beginPath(); g.ellipse(x, y - 4, 10, 4.5, 0, 0, 7); g.fill();
+  g.fillStyle = '#3b66c4'; g.beginPath(); g.moveTo(x - 11, y - 5); g.lineTo(x, y - 20); g.lineTo(x + 11, y - 5); g.fill();
+}
+function tent(g, x, y, col, big) {
+  const k = big ? 1.4 : 1; g.fillStyle = col; g.strokeStyle = INK; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x - 13 * k, y + 8 * k); g.lineTo(x, y - 14 * k); g.lineTo(x + 13 * k, y + 8 * k); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#2a1c10'; g.beginPath(); g.moveTo(x - 4 * k, y + 8 * k); g.lineTo(x, y - 2 * k); g.lineTo(x + 4 * k, y + 8 * k); g.fill();
+}
+function flag(g, x, y, col, label, prog) {
+  g.strokeStyle = INK; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 24); g.stroke();
+  g.fillStyle = col; g.beginPath(); g.moveTo(x, y - 24); g.lineTo(x + 14, y - 20); g.lineTo(x, y - 15); g.fill();
+  if (prog) { g.strokeStyle = 'rgba(246,215,122,.95)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y - 2, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog); g.stroke(); }
+  if (label) tag(g, x, y + 16, label);
+}
+function tag(g, x, y, text, col) {
+  g.font = '700 10px Alegreya Sans, sans-serif'; const w = g.measureText(text).width + 10;
+  g.fillStyle = 'rgba(30,25,19,.88)'; g.fillRect(x - w / 2, y - 9, w, 15); g.fillStyle = col || '#f6e7bf'; g.textAlign = 'center'; g.fillText(text, x, y + 2);
+}
+function squad(g, x, y, col, n, letter) {
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(x, y + 7, 14, 6, 0, 0, 7); g.fill();
+  for (let i = 0; i < n; i++) { const cx = x + ((i % 3) - 1) * 7, cy = y + Math.floor(i / 3) * 6 - 2; g.fillStyle = col; g.fillRect(cx - 2.2, cy - 5, 4.4, 7); g.fillStyle = '#e0b48a'; g.beginPath(); g.arc(cx, cy - 7, 2.2, 0, 7); g.fill(); g.fillStyle = col === RED ? '#7d1d16' : '#1d4a9a'; g.fillRect(cx + 2.5, cy - 4, 2, 6); }
+  if (letter) { g.fillStyle = '#1e1913'; g.strokeStyle = GOLD; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y - 22, 7, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#f6e7bf'; g.font = '700 9px Cormorant SC, serif'; g.textAlign = 'center'; g.fillText(letter, x, y - 19); }
+}
+function arrowPath(g, pts, col) { g.strokeStyle = col || 'rgba(192,38,27,.85)'; g.lineWidth = 2.6; g.setLineDash([6, 5]); g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.setLineDash([]); const [a, b] = pts[pts.length - 2], [c, d] = pts[pts.length - 1], an = Math.atan2(d - b, c - a); g.fillStyle = col || 'rgba(192,38,27,.9)'; g.beginPath(); g.moveTo(c + Math.cos(an) * 7, d + Math.sin(an) * 7); g.lineTo(c + Math.cos(an + 2.4) * 7, d + Math.sin(an + 2.4) * 7); g.lineTo(c + Math.cos(an - 2.4) * 7, d + Math.sin(an - 2.4) * 7); g.fill(); }
+
+// New drawing code for the second mock-up board: squad banners, control panels, zoom levels.
+const SQ = [
+  { k: 'hastati', name: 'Гастаты', role: 'тяжёлая пехота', col: '#c0261b', trim: '#d9a441', emb: 'eagle', shape: 'vex', form: 'перекладина' },
+  { k: 'velites', name: 'Велиты', role: 'метатели', col: '#2f8f4e', trim: '#eef3d2', emb: 'wolf', shape: 'pennant', form: 'вымпел' },
+  { k: 'eques', name: 'Всадники', role: 'конница', col: '#7b3fa0', trim: '#f2e8ff', emb: 'horse', shape: 'swallow', form: 'ласточка' },
+  { k: 'eng', name: 'Инженеры', role: 'сапёры', col: '#d98a1f', trim: '#2a1c10', emb: 'pick', shape: 'square', form: 'квадрат' }
+];
+const NAMES = ['Марк', 'Тит', 'Гай', 'Луций'], HP = [0.9, 0.7, 1, 1];
+function emblem(g, k, cx, cy, z, col) {
+  g.fillStyle = col; g.strokeStyle = col; g.lineWidth = Math.max(1, z * 0.28);
+  g.beginPath();
+  if (k === 'eagle') { g.moveTo(cx - z, cy - z * 0.1); g.quadraticCurveTo(cx - z * 0.45, cy - z * 0.95, cx, cy - z * 0.25); g.quadraticCurveTo(cx + z * 0.45, cy - z * 0.95, cx + z, cy - z * 0.1); g.lineTo(cx + z * 0.3, cy + z * 0.6); g.lineTo(cx - z * 0.3, cy + z * 0.6); g.closePath(); g.fill(); }
+  else if (k === 'wolf') { g.moveTo(cx - z * 0.8, cy - z * 0.8); g.lineTo(cx - z * 0.3, cy - z * 0.35); g.lineTo(cx + z * 0.3, cy - z * 0.35); g.lineTo(cx + z * 0.8, cy - z * 0.8); g.lineTo(cx + z * 0.7, cy + z * 0.1); g.lineTo(cx, cy + z * 0.75); g.lineTo(cx - z * 0.7, cy + z * 0.1); g.closePath(); g.fill(); }
+  else if (k === 'horse') { g.moveTo(cx - z * 0.7, cy + z * 0.8); g.lineTo(cx - z * 0.5, cy - z * 0.2); g.lineTo(cx - z * 0.1, cy - z * 0.9); g.lineTo(cx + z * 0.2, cy - z * 0.7); g.lineTo(cx + z * 0.9, cy + z * 0.1); g.lineTo(cx + z * 0.6, cy + z * 0.35); g.lineTo(cx + z * 0.1, cy + z * 0.1); g.lineTo(cx + z * 0.1, cy + z * 0.8); g.closePath(); g.fill(); }
+  else { g.moveTo(cx - z * 0.8, cy + z * 0.8); g.lineTo(cx + z * 0.5, cy - z * 0.5); g.stroke(); g.beginPath(); g.arc(cx + z * 0.1, cy - z * 0.1, z * 0.9, -2.5, -0.3); g.stroke(); }
+}
+// a squad's standard: pole, a cloth whose SHAPE, colour and emblem differ for every squad
+function banner(g, x, y, s, sc, enemy) {
+  sc = sc || 1; const top = y - 34 * sc, col = enemy ? '#2f6fd6' : s.col, trim = enemy ? '#dfe8ff' : s.trim;
+  g.strokeStyle = '#5a3d20'; g.lineWidth = Math.max(1.4, 1.8 * sc); g.beginPath(); g.moveTo(x, y); g.lineTo(x, top - 3 * sc); g.stroke();
+  g.fillStyle = '#d9a441'; g.beginPath(); g.arc(x, top - 4 * sc, 2.4 * sc, 0, 7); g.fill();
+  g.fillStyle = col; g.strokeStyle = trim; g.lineWidth = Math.max(1, 1.3 * sc);
+  let ex, ey; g.beginPath();
+  if (s.shape === 'vex') { g.fillStyle = '#5a3d20'; g.fillRect(x - 9 * sc, top, 18 * sc, 2 * sc); g.fillStyle = col; g.beginPath(); g.rect(x - 8 * sc, top + 2 * sc, 16 * sc, 17 * sc); ex = x; ey = top + 11 * sc; g.fill(); g.stroke(); g.fillStyle = trim; for (let i = 0; i < 4; i++) g.fillRect(x - 8 * sc + i * 4.4 * sc, top + 19 * sc, 2.4 * sc, 3.4 * sc); }
+  else if (s.shape === 'pennant') { g.moveTo(x, top); g.lineTo(x + 24 * sc, top + 5 * sc); g.lineTo(x, top + 10 * sc); g.closePath(); g.fill(); g.stroke(); ex = x + 7 * sc; ey = top + 5 * sc; }
+  else if (s.shape === 'swallow') { g.moveTo(x, top); g.lineTo(x + 19 * sc, top); g.lineTo(x + 13 * sc, top + 8 * sc); g.lineTo(x + 19 * sc, top + 16 * sc); g.lineTo(x, top + 16 * sc); g.closePath(); g.fill(); g.stroke(); ex = x + 8 * sc; ey = top + 8 * sc; }
+  else { g.rect(x, top, 16 * sc, 15 * sc); g.fill(); g.stroke(); ex = x + 8 * sc; ey = top + 7.5 * sc; }
+  if (sc >= 0.8) emblem(g, s.emb, ex, ey, 4 * sc, trim);
+}
+function ground(g, r, y0, y1) {
+  const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, '#9fb06e'); gr.addColorStop(1, '#b9c689'); g.fillStyle = gr; g.fillRect(0, y0, CW, y1 - y0);
+  for (let i = 0; i < 46; i++) { g.fillStyle = r() < .5 ? 'rgba(110,145,65,.2)' : 'rgba(235,240,165,.24)'; g.beginPath(); g.ellipse(r() * CW, y0 + r() * (y1 - y0), 8 + r() * 26, 5 + r() * 14, r() * 3, 0, 7); g.fill(); }
+}
+// the district town of mock-up 3 (the map we may take), without any interface
+const TOPY = FY + 16, MY = TOPY + 118;
+function town(g, r, y1) {
+  ground(g, r, FY, y1 || FB); const top = TOPY, my = MY;
+  plateau(g, 0, top, 320, 92, 12); g.fillStyle = '#cbc1aa'; g.fillRect(70, top + 6, 180, 80);
+  g.fillStyle = '#d3cab8'; g.fillRect(122, top + 12, 76, 40); g.fillStyle = '#7d756a'; g.fillRect(122, top + 44, 76, 8); g.fillStyle = '#b4562f'; g.beginPath(); g.moveTo(118, top + 14); g.lineTo(160, top - 8); g.lineTo(202, top + 14); g.fill();
+  [[22, 14], [50, 38], [270, 14], [248, 40]].forEach(([x, y]) => house(g, x, top + y, 22, 18, '#9a4a2a')); ramp(g, 286, top + 92, 24, 14);
+  g.fillStyle = '#cbc1aa'; g.fillRect(176, my, 144, 118); g.fillStyle = '#d6c08a'; g.beginPath(); g.arc(250, my + 60, 26, 0, 7); g.fill();
+  [[184, 8], [212, 10], [290, 8], [184, 82], [214, 92], [290, 82], [292, 60]].forEach(([x, y], i) => house(g, x, my + y, 22, 17, ['#b4562f', '#a8673a'][i % 2]));
+  plateau(g, 0, my, 92, 94, 10); [[8, 12], [46, 16], [14, 56]].forEach(([x, y]) => house(g, x, my + y, 22, 16, '#8a4a2a')); forest(g, r, 96, my + 4, 70, 98, 12); ramp(g, 70, my + 104, 22, 12);
+  river(g, top + 258, top + 276, [90, 250], [170]); g.fillStyle = '#c8bf9e'; g.fillRect(0, top + 276, 320, 70);
+  [[16, 288], [50, 292], [118, 286], [210, 290], [270, 288], [292, 308]].forEach(([x, y], i) => house(g, x, top + y, 22, 16, ['#b4562f', '#a8673a'][i % 2]));
+  road(g, [[90, top + 346], [90, top + 258], [120, my + 118], [190, my + 60], [250, my + 60]], 12); road(g, [[250, top + 346], [250, top + 258]], 12); road(g, [[220, my + 60], [160, top + 60]], 12);
+  if ((y1 || FB) > FB) road(g, [[90, FB], [90, y1]], 12);
+  [[160, top + 30, 'Цитадель', 0], [250, my + 60, 'Рынок', 0.6], [46, my + 36, 'Храмовый холм', 0]].forEach(([x, y, l, p]) => flag(g, x, y, BLUE, l, p));
+  squad(g, 224, my + 30, BLUE, 4); squad(g, 40, my + 70, BLUE, 3); squad(g, 120, top + 62, BLUE, 5); squad(g, 160, top + 76, BLUE, 5);
+}
+// our four squads with their own banners; sel = index of the selected squad (or -1)
+function romeSquads(g, ys, sel, sc) {
+  const xs = [70, 136, 206, 262]; sc = sc || 1;
+  SQ.forEach((s, i) => { const x = xs[i], y = ys[i]; squad(g, x, y, s.col, [6, 5, 4, 4][i]);
+    if (sel === i) { g.strokeStyle = '#f6d77a'; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y + 4, 22, 14, 0, 0, 7); g.stroke(); }
+    banner(g, x + 17, y + 6, s, sc); });
+}
+function topBar(g, title, sub, chip) {
+  g.fillStyle = '#1e1913'; g.fillRect(0, 0, CW, FY);
+  g.fillStyle = '#2a231a'; g.strokeStyle = '#4a3d2c'; g.lineWidth = 1; g.beginPath(); g.rect(8, 7, 30, 30); g.fill(); g.stroke(); g.fillStyle = '#efe6d2'; g.font = '14px sans-serif'; g.textAlign = 'center'; g.fillText('↻', 23, 27);
+  g.textAlign = 'left'; g.fillStyle = GOLD; g.font = '700 8px Alegreya Sans, sans-serif'; g.fillText('ШТУРМ', 46, 15); g.fillStyle = '#efe6d2'; g.font = '700 15px Cormorant SC, serif'; g.fillText(title, 46, 29); g.fillStyle = '#b8aa8c'; g.font = '9px Alegreya Sans, sans-serif'; g.fillText(sub, 46, 40);
+  g.fillStyle = '#2a231a'; g.strokeStyle = '#4a3d2c'; g.beginPath(); g.rect(CW - 56, 11, 48, 22); g.fill(); g.stroke(); g.fillStyle = '#efe6d2'; g.font = '700 11px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(chip, CW - 32, 26);
+}
+function objBar(g, y) { g.fillStyle = '#2a1f12'; g.fillRect(0, y, CW, 16); [0, 1, 2, 3].forEach(i => { g.fillStyle = i < 2 ? RED : '#3a3a52'; g.fillRect(8 + i * 77, y + 4, 72, 8); }); g.fillStyle = '#f6e7bf'; g.font = '700 9px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText('Районы 2 из 4', CW / 2, y + 11); }
+function skillBtn(g, x, y, w, h, label, sub, round) {
+  g.fillStyle = GOLD; g.beginPath(); if (round) g.arc(x, y, w, 0, 7); else g.rect(x, y, w, h); g.fill();
+  g.fillStyle = '#1e1408'; g.textAlign = 'center'; g.font = '700 ' + (round ? 11 : 12) + 'px Alegreya Sans, sans-serif'; g.fillText(label, round ? x : x + w / 2, round ? y - 1 : y + h / 2 - 2); g.font = '9px Alegreya Sans, sans-serif'; g.fillText(sub, round ? x : x + w / 2, round ? y + 11 : y + h / 2 + 11);
+}
+function hpRing(g, x, y, r, f, col) { g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); g.strokeStyle = col || '#6fd17a'; g.beginPath(); g.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); g.stroke(); }
+function arrowTo(g, pts) { arrowPath(g, pts); }
+
+// ---------------------------------------------------------------- banner sheet
+{ const c = document.getElementById('sheet'), g = c.getContext('2d'); g.scale(DPR, DPR); g.lineCap = 'round'; g.lineJoin = 'round'; const SW = 960, SH = 330;
+  g.fillStyle = '#1e1913'; g.fillRect(0, 0, SW, SH);
+  SQ.forEach((s, i) => { const x0 = 18 + i * 232;
+    g.fillStyle = '#2a231a'; g.strokeStyle = '#4a3d2c'; g.lineWidth = 1; g.beginPath(); g.rect(x0, 16, 214, 214); g.fill(); g.stroke();
+    g.fillStyle = s.col; g.fillRect(x0, 16, 214, 6);
+    banner(g, x0 + 34, 196, s, 2.6);
+    g.fillStyle = '#f6e7bf'; g.font = '700 22px Cormorant SC, serif'; g.textAlign = 'left'; g.fillText(NAMES[i], x0 + 120, 62); g.fillStyle = GOLD; g.font = '700 11px Alegreya Sans, sans-serif'; g.fillText(s.name.toUpperCase(), x0 + 120, 80);
+    g.fillStyle = '#b8aa8c'; g.font = '12px Alegreya Sans, sans-serif'; g.fillText(s.role, x0 + 120, 100); g.fillText('форма: ' + s.form, x0 + 120, 118);
+    const sw = [s.col, s.trim]; sw.forEach((cc, k) => { g.fillStyle = cc; g.fillRect(x0 + 120 + k * 30, 130, 24, 24); g.strokeStyle = '#4a3d2c'; g.strokeRect(x0 + 120 + k * 30, 130, 24, 24); });
+    // the same standard at field size, and as a silhouette (shape alone must tell them apart)
+    banner(g, x0 + 130, 222, s, 0.85);
+    g.save(); g.filter = 'grayscale(1)'; banner(g, x0 + 176, 222, s, 0.85); g.restore();
+  });
+  g.fillStyle = '#b8aa8c'; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'left'; g.fillText('НА ПОЛЕ И В ЧЁРНО-БЕЛОМ ТЕСТЕ', 18, 256);
+  g.fillStyle = '#3a3024'; g.fillRect(18, 262, SW - 36, 1);
+  g.fillStyle = '#b8aa8c'; g.font = '12px Alegreya Sans, sans-serif'; g.fillText('Враг: все знамёна синие, форма повторяет класс', 18, 284);
+  [SQ[0], SQ[1], SQ[2], SQ[3]].forEach((s, i) => banner(g, 340 + i * 56, 300, s, 0.8, true));
+  g.fillText('Захватываемая точка: флаг с кольцом', 580, 284); flag(g, 640, 312, BLUE, '', 0.6); flag(g, 690, 312, RED, '', 1);
+}
+
+// ---------------------------------------------------------------- panel 1: cards at the bottom
+{ const g = ctxOf('u1'), r = rng(37); town(g, r); objBar(g, FY); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); romeSquads(g, [FB - 56, FB - 44, FB - 56, FB - 44], 1);
+  g.fillStyle = '#1e1913'; g.fillRect(0, FB, CW, CH - FB);
+  SQ.forEach((s, i) => { const x = 6 + i * 52; g.fillStyle = i === 1 ? '#3a2e18' : '#2a231a'; g.strokeStyle = i === 1 ? '#f6d77a' : '#4a3d2c'; g.lineWidth = 1.2; g.beginPath(); g.rect(x, FB + 8, 48, 50); g.fill(); g.stroke(); g.fillStyle = s.col; g.fillRect(x, FB + 8, 48, 4);
+    banner(g, x + 14, FB + 44, s, 0.62); g.fillStyle = '#b8aa8c'; g.font = '9px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(NAMES[i], x + 33, FB + 30); g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x + 6, FB + 49, 36, 4); g.fillStyle = '#6fd17a'; g.fillRect(x + 6, FB + 49, 36 * HP[i], 4); });
+  skillBtn(g, CW - 104, FB + 8, 98, 50, 'Залп', 'урон ×2,5'); }
+
+// ---------------------------------------------------------------- panel 2: banner rail on the left, round skill button
+{ const g = ctxOf('u2'), r = rng(37); town(g, r, CH); objBar(g, FY); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); romeSquads(g, [FB - 56, FB - 44, FB - 56, FB - 44], 1);
+  SQ.forEach((s, i) => { const x = 28, y = FY + 56 + i * 62; g.fillStyle = 'rgba(30,25,19,.92)'; g.strokeStyle = i === 1 ? '#f6d77a' : '#4a3d2c'; g.lineWidth = i === 1 ? 2.5 : 1.2; g.beginPath(); g.arc(x, y, 24, 0, 7); g.fill(); g.stroke(); hpRing(g, x, y, 24, HP[i], i === 1 ? '#f2c14e' : '#6fd17a'); banner(g, x - 6, y + 17, s, 0.72); });
+  skillBtn(g, CW - 44, CH - 52, 32, 0, 'Залп', 'готов', true); g.strokeStyle = '#f6d77a'; g.lineWidth = 3; g.beginPath(); g.arc(CW - 44, CH - 52, 36, 0, 7); g.stroke();
+  g.fillStyle = 'rgba(30,25,19,.9)'; g.fillRect(CW - 108, CH - 38, 40, 24); g.fillStyle = '#efe6d2'; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText('Тит · 70%', CW - 88, CH - 22); }
+
+// ---------------------------------------------------------------- panel 3: radial menu at the squad, tokens on top
+{ const g = ctxOf('u3'), r = rng(37); town(g, r, CH); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); objBar(g, FY);
+  g.fillStyle = 'rgba(30,60,110,.1)'; g.fillRect(0, FY + 16, CW, CH - FY - 16);
+  const sy = [FB - 20, FB - 4, FB - 20, FB - 4]; romeSquads(g, sy, 1);
+  // tokens along the top edge
+  SQ.forEach((s, i) => { const x = 40 + i * 78, y = FY + 34; g.fillStyle = 'rgba(30,25,19,.92)'; g.strokeStyle = i === 1 ? '#f6d77a' : '#4a3d2c'; g.lineWidth = i === 1 ? 2 : 1; g.beginPath(); g.rect(x - 30, y - 12, 62, 24); g.fill(); g.stroke(); banner(g, x - 22, y + 10, s, 0.42); g.fillStyle = '#b8aa8c'; g.font = '9px Alegreya Sans, sans-serif'; g.textAlign = 'left'; g.fillText(NAMES[i], x - 12, y - 1); g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x - 12, y + 3, 38, 4); g.fillStyle = '#6fd17a'; g.fillRect(x - 12, y + 3, 38 * HP[i], 4); });
+  // the radial menu around the selected squad (Велиты)
+  const cx = 136, cy = sy[1] - 6; g.strokeStyle = 'rgba(246,215,122,.6)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.arc(cx, cy, 54, 0, 7); g.stroke(); g.setLineDash([]);
+  [[-90, 'Залп', GOLD, '#1e1408'], [-18, 'Стоять', '#2a231a', '#efe6d2'], [-162, 'Назад', '#2a231a', '#efe6d2']].forEach(([a, t, bg, fg]) => { const x = cx + Math.cos(a * Math.PI / 180) * 54, y = cy + Math.sin(a * Math.PI / 180) * 54; g.fillStyle = bg; g.strokeStyle = GOLD; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, 19, 0, 7); g.fill(); g.stroke(); g.fillStyle = fg; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(t, x, y + 3); });
+  g.fillStyle = 'rgba(30,25,19,.9)'; g.fillRect(14, CH - 30, 140, 20); g.fillStyle = '#bfe0ff'; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'left'; g.fillText('⏳ Замедление · выберите действие', 20, CH - 16); }
+
+// ---------------------------------------------------------------- panel 4: banners hung on a rope across the top
+{ const g = ctxOf('u4'), r = rng(37); town(g, r, CH); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); objBar(g, FY);
+  romeSquads(g, [FB - 20, FB - 4, FB - 20, FB - 4], 1);
+  g.strokeStyle = '#5a3d20'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(0, FY + 24); g.quadraticCurveTo(CW / 2, FY + 34, CW, FY + 24); g.stroke();
+  SQ.forEach((s, i) => { const x = 48 + i * 74, y = FY + 52 + (i === 1 ? -4 : 0); g.fillStyle = 'rgba(30,25,19,.9)'; if (i === 1) { g.fillStyle = 'rgba(246,215,122,.25)'; g.beginPath(); g.arc(x + 6, y - 6, 30, 0, 7); g.fill(); } banner(g, x, y + 16, s, 1.1); hpRing(g, x + 8, y + 22, 8, HP[i], i === 1 ? '#f2c14e' : '#6fd17a'); g.fillStyle = '#f6e7bf'; g.font = '700 9px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(NAMES[i], x + 8, y + 40); });
+  g.fillStyle = 'rgba(30,25,19,.92)'; g.strokeStyle = '#4a3d2c'; g.fillRect(8, CH - 44, 68, 32); g.strokeRect(8, CH - 44, 68, 32); g.fillStyle = '#efe6d2'; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText('Пауза', 42, CH - 24);
+  skillBtn(g, CW - 112, CH - 56, 104, 44, 'Залп', 'двойное касание'); }
+
+// ---------------------------------------------------------------- panel 5: compact bar with a minimap and zoom
+{ const g = ctxOf('u5'), r = rng(37); town(g, r); objBar(g, FY); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); romeSquads(g, [FB - 56, FB - 44, FB - 56, FB - 44], 1);
+  g.fillStyle = '#1e1913'; g.fillRect(0, FB, CW, CH - FB);
+  // minimap with the viewport frame
+  g.fillStyle = '#9fb06e'; g.fillRect(8, FB + 10, 80, 100 > CH - FB - 20 ? CH - FB - 20 : 100); g.strokeStyle = GOLD; g.lineWidth = 1.2; g.strokeRect(8, FB + 10, 80, CH - FB - 20);
+  g.fillStyle = '#7d756a'; g.fillRect(20, FB + 14, 56, 16); g.fillStyle = '#5b97c2'; g.fillRect(8, FB + 60, 80, 6); g.fillStyle = BLUE; [[30, 20], [60, 36], [20, 46], [48, 22]].forEach(([x, y]) => g.fillRect(8 + x, FB + y, 4, 3)); SQ.forEach((s, i) => { g.fillStyle = s.col; g.fillRect(24 + i * 14, FB + 80, 5, 4); }); g.strokeStyle = '#fff3d6'; g.strokeRect(10, FB + 12, 76, 62);
+  SQ.forEach((s, i) => { const x = 96 + i * 44; g.fillStyle = i === 1 ? '#3a2e18' : '#2a231a'; g.strokeStyle = i === 1 ? '#f6d77a' : '#4a3d2c'; g.lineWidth = 1.2; g.beginPath(); g.rect(x, FB + 10, 40, 56); g.fill(); g.stroke(); g.fillStyle = s.col; g.fillRect(x, FB + 10, 40, 4); banner(g, x + 12, FB + 50, s, 0.6); g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x + 5, FB + 56, 30, 4); g.fillStyle = '#6fd17a'; g.fillRect(x + 5, FB + 56, 30 * HP[i], 4); });
+  skillBtn(g, CW - 46, FB + 38, 30, 0, 'Залп', '', true);
+  // zoom controls on the right edge of the field
+  [['+', FY + 160], ['−', FY + 196]].forEach(([t, y]) => { g.fillStyle = 'rgba(30,25,19,.92)'; g.strokeStyle = '#4a3d2c'; g.lineWidth = 1; g.beginPath(); g.rect(CW - 38, y, 30, 30); g.fill(); g.stroke(); g.fillStyle = '#efe6d2'; g.font = '700 18px sans-serif'; g.textAlign = 'center'; g.fillText(t, CW - 23, y + 21); });
+  g.fillStyle = 'rgba(30,25,19,.92)'; g.fillRect(CW - 52, FY + 236, 44, 18); g.fillStyle = '#f6d77a'; g.font = '700 10px Alegreya Sans, sans-serif'; g.fillText('1,0×', CW - 30, FY + 249); }
+
+// ---------------------------------------------------------------- zoom levels
+function zoomScene(id, z, cx, cy, mode) {
+  const g = ctxOf(id), r = rng(37); topBar(g, 'Город Вейи', 'Возьмите три района из четырёх', '1:12'); objBar(g, FY);
+  g.save(); g.beginPath(); g.rect(0, FY + 16, CW, FH - 16); g.clip(); g.translate(CW / 2, FY + 16 + (FH - 16) / 2); g.scale(z, z); g.translate(-cx, -cy);
+  town(g, r); river(g, TOPY + 258, TOPY + 276, [90, 250], [170]);
+  const yy = [TOPY + 322, TOPY + 332, TOPY + 322, TOPY + 332]; romeSquads(g, yy, 1, mode === 'far' ? 1.5 : 1);
+  if (mode === 'near') { const s = SQ[1]; g.strokeStyle = 'rgba(246,215,122,.9)'; g.lineWidth = 1.5; g.setLineDash([5, 4]); g.beginPath(); g.arc(136, yy[1], 40, 0, 7); g.stroke(); g.setLineDash([]); arrowTo(g, [[136, yy[1] - 10], [150, TOPY + 270], [170, TOPY + 220]]); }
+  g.restore();
+  g.fillStyle = '#1e1913'; g.fillRect(0, FB, CW, CH - FB);
+  SQ.forEach((s, i) => { const x = 6 + i * 52; g.fillStyle = i === 1 ? '#3a2e18' : '#2a231a'; g.strokeStyle = i === 1 ? '#f6d77a' : '#4a3d2c'; g.lineWidth = 1.2; g.beginPath(); g.rect(x, FB + 8, 48, 50); g.fill(); g.stroke(); g.fillStyle = s.col; g.fillRect(x, FB + 8, 48, 4); banner(g, x + 14, FB + 44, s, 0.62); g.fillStyle = '#b8aa8c'; g.font = '9px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(NAMES[i], x + 33, FB + 30); g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x + 6, FB + 49, 36, 4); g.fillStyle = '#6fd17a'; g.fillRect(x + 6, FB + 49, 36 * HP[i], 4); });
+  skillBtn(g, CW - 104, FB + 8, 98, 50, 'Залп', 'урон ×2,5');
+  g.fillStyle = 'rgba(30,25,19,.92)'; g.fillRect(CW - 52, FY + 24, 44, 18); g.fillStyle = '#f6d77a'; g.font = '700 10px Alegreya Sans, sans-serif'; g.textAlign = 'center'; g.fillText(z.toFixed(1).replace('.', ',') + '×', CW - 30, FY + 37);
+  return g;
+}
+{ zoomScene('z1', 1, 160, FY + 16 + 215, 'far'); }
+{ const g = zoomScene('z2', 1.6, 150, TOPY + 270, 'mid'); }
+{ const g = zoomScene('z3', 2.4, 150, TOPY + 290, 'near'); }
+
+</script>

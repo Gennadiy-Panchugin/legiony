@@ -1,0 +1,131 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Formation.dc.html": {
+   "h": 844,
+   "title": "3 · Строй и фланги",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "General.dc.html": {
+   "h": 844,
+   "title": "5 · Полководец на поле",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "Heights.dc.html": {
+   "h": 844,
+   "title": "4 · Удержание высот",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "h": 844,
+   "title": "1 · Линия фронта (рекомендую)",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "Plan.dc.html": {
+   "h": 844,
+   "title": "2 · План и исполнение",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "Setup.dc.html": {
+   "x": 0,
+   "y": 1264,
+   "w": 390,
+   "h": 844,
+   "title": "6 · Расстановка и автобой"
+  },
+  "Shore.dc.html": {
+   "x": 470,
+   "y": 1264,
+   "w": 390,
+   "h": 844,
+   "title": "7 · Оборона берега"
+  },
+  "Lanes.dc.html": {
+   "x": 940,
+   "y": 1264,
+   "w": 390,
+   "h": 844,
+   "title": "8 · Три фланга"
+  },
+  "Siege.dc.html": {
+   "x": 1410,
+   "y": 1264,
+   "w": 390,
+   "h": 844,
+   "title": "9 · Осада крепости"
+  },
+  "Cards.dc.html": {
+   "x": 1880,
+   "y": 1264,
+   "w": 390,
+   "h": 844,
+   "title": "10 · Колода приказов"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-02T15:54:52Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "head": {
+   "kind": "title1",
+   "maxW": 2270,
+   "text": "Легионы — 5 вариантов механики боя",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "head2": {
+   "x": 0,
+   "y": 1004,
+   "text": "Ещё 5 вариантов",
+   "kind": "title1",
+   "maxW": 2270
+  },
+  "refs1": {
+   "x": 2350,
+   "y": 0,
+   "w": 380,
+   "fill": "orange",
+   "size": "m",
+   "text": "Рефы, ряд 1\n\n1 · Линия фронта — Hearts of Iron IV (боевые планы и фронты)\n2 · План и исполнение — Frozen Synapse (одновременные ходы)\n3 · Строй и фланги — Rome: Total War, Ultimate General: Gettysburg (приказы рисуются путём)\n4 · Удержание высот — Company of Heroes, Battlefield «Захват»\n5 · Полководец на поле — Mount & Blade, Kingdom: Two Crowns"
+  },
+  "refs2": {
+   "x": 2350,
+   "y": 1264,
+   "w": 380,
+   "fill": "orange",
+   "size": "m",
+   "text": "Рефы, ряд 2\n\n6 · Расстановка и автобой — Art of War: Legions (мобильная), TABS\n7 · Оборона берега — Bad North (4 отряда на острове, высадки с разных сторон)\n8 · Три фланга — Warpips, Stick War: Legacy\n9 · Осада крепости — Stronghold, Kingdom Rush наоборот\n10 · Колода приказов — Clash Royale (карты на поле), Slay the Spire"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Plan.dc.html",
+  "Formation.dc.html",
+  "Heights.dc.html",
+  "General.dc.html",
+  "Setup.dc.html",
+  "Shore.dc.html",
+  "Lanes.dc.html",
+  "Siege.dc.html",
+  "Cards.dc.html"
+ ],
+ "pages": [],
+ "title": "Легионы — 5 механик боя"
+}

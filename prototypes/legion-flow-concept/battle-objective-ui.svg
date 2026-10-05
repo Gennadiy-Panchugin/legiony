@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="1688" viewBox="0 0 390 844">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#19221d"/><stop offset="1" stop-color="#0d1412"/></linearGradient>
+    <linearGradient id="panel" x2="0" y2="1"><stop stop-color="#29352c"/><stop offset="1" stop-color="#1b251f"/></linearGradient>
+    <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#f0cb75"/><stop offset="1" stop-color="#b8873e"/></linearGradient>
+    <pattern id="grass" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#526447"/><path d="M2 5l4-2m6 9 4-3M3 18l3-2m10-9 3-2" stroke="#687956" stroke-width="1" opacity=".65"/></pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter>
+  </defs>
+  <rect width="390" height="844" rx="28" fill="url(#bg)"/>
+  <!-- status and header -->
+  <text x="22" y="29" fill="#e9e2cc" font-family="Arial,sans-serif" font-size="12" font-weight="700">9:41</text>
+  <text x="338" y="29" fill="#e9e2cc" font-family="Arial,sans-serif" font-size="11">▮▮▮  ◉</text>
+  <path d="M18 56l8-8m-8 8 8 8" stroke="#e7dfca" stroke-width="2" fill="none"/>
+  <text x="42" y="57" fill="#f0e8d2" font-family="Georgia,serif" font-size="18" font-weight="700" letter-spacing="1">СХВАТКА ЗА СКЛАД</text>
+  <text x="42" y="75" fill="#a8b09b" font-family="Arial,sans-serif" font-size="10" letter-spacing="1.4">СЕВЕРНЫЙ ТРАКТ · 2:00</text>
+  <rect x="327" y="43" width="44" height="32" rx="9" fill="#253029" stroke="#4b5946"/><text x="349" y="64" fill="#e4d9bc" text-anchor="middle" font-family="Arial" font-size="14">Ⅱ</text>
+  <!-- objective card -->
+  <g filter="url(#shadow)"><rect x="16" y="91" width="358" height="66" rx="13" fill="url(#panel)" stroke="#596348"/>
+  <path d="M37 109l10-6 10 6v18l-10 6-10-6z" fill="#c49b56" stroke="#e5c276"/><path d="M42 113h10v9H42zM40 122h14" stroke="#322a1d" stroke-width="2" fill="none"/>
+  <text x="68" y="112" fill="#ecd9a8" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1">ЦЕЛЬ</text><text x="68" y="130" fill="#f4efdf" font-family="Georgia,serif" font-size="15" font-weight="700">Захватить склад</text>
+  <rect x="250" y="104" width="108" height="9" rx="4" fill="#101713"/><rect x="250" y="104" width="64" height="9" rx="4" fill="url(#gold)"/><text x="250" y="132" fill="#c8c7b4" font-family="Arial" font-size="10">Захват</text><text x="358" y="132" text-anchor="end" fill="#efce83" font-family="Arial" font-size="11" font-weight="700">60%</text></g>
+  <!-- battlefield map -->
+  <rect x="16" y="169" width="358" height="401" rx="15" fill="url(#grass)" stroke="#758060" stroke-width="1.2"/>
+  <!-- paths / river -->
+  <path d="M-4 394C66 365 95 427 159 397s93-46 143-14 69 18 106-7v102c-55 32-87-2-133-16s-93 36-147 22S48 475-4 504z" fill="#567482" stroke="#79939a" stroke-width="3"/>
+  <path d="M-4 447c59-28 88 34 143 42s93-38 143-22 74 40 119 15" fill="none" stroke="#98a69a" stroke-width="3" stroke-dasharray="5 7" opacity=".7"/>
+  <!-- road -->
+  <path d="M185 178 198 254 170 320 191 379 212 421 194 481 217 562" fill="none" stroke="#7d7054" stroke-width="24" opacity=".9"/><path d="M185 178 198 254 170 320 191 379 212 421 194 481 217 562" fill="none" stroke="#b5a27b" stroke-width="14"/>
+  <path d="M181 180 194 254 166 320 187 379 208 421 190 481 213 560" fill="none" stroke="#d1bd91" stroke-width="1.5" stroke-dasharray="3 8"/>
+  <!-- bridge -->
+  <path d="M177 391l28-1 13 26-29 5z" fill="#8a6342" stroke="#d0a46c" stroke-width="2"/><path d="M180 398l27-4m-22 12 26-4" stroke="#e0ba7d" stroke-width="2"/>
+  <!-- warehouse -->
+  <g transform="translate(180 245)" filter="url(#shadow)"><ellipse cx="0" cy="23" rx="42" ry="18" fill="#233026" opacity=".5"/><path d="M-29 1 0-17 29 1v29h-58z" fill="#796344" stroke="#d1b174" stroke-width="2"/><path d="M-35 2 0-22 35 2 29 8 0-11-29 8z" fill="#914f39" stroke="#cb9360" stroke-width="2"/><path d="M-8 30V11h16v19" fill="#443a2b" stroke="#c8ac73"/><path d="M-23 10h9v8h-9zm28 0h9v8H5z" fill="#d4bd87"/><rect x="-47" y="35" width="94" height="19" rx="9" fill="#152019" stroke="#d9b965"/><text x="0" y="48" fill="#f2d68a" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700">СКЛАД · НЕЙТРАЛЕН</text></g>
+  <!-- friendly troops -->
+  <g transform="translate(94 326)"><circle r="25" fill="#263a33" stroke="#8daf91" stroke-width="2"/><path d="M-12 9v-14l12-8 12 8V9z" fill="#aeb79b" stroke="#e3d8b7"/><path d="M-10-7h20M-6-13v23m12-23v23" stroke="#596b58" stroke-width="2"/><text y="39" fill="#edf0dc" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700">ПЕХОТА</text><text y="51" fill="#bad0ad" text-anchor="middle" font-family="Arial" font-size="9">18</text></g>
+  <g transform="translate(272 354)"><circle r="24" fill="#263a33" stroke="#8daf91" stroke-width="2"/><path d="M-12 5q12-17 24 0l-3 8h-18z" fill="#d3d1b6" stroke="#ece1c2"/><path d="M-5-10h10v10H-5zm0 8-8 13m18-13 8 13" stroke="#726d58" stroke-width="2"/><text y="38" fill="#edf0dc" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700">ЛУЧНИКИ</text><text y="50" fill="#bad0ad" text-anchor="middle" font-family="Arial" font-size="9">12</text></g>
+  <g transform="translate(128 499)"><circle r="25" fill="#263a33" stroke="#8daf91" stroke-width="2"/><path d="M-16 7q14-16 29-4l-5 9h-20z" fill="#785540" stroke="#d7a36a" stroke-width="2"/><circle cx="0" cy="-10" r="7" fill="#c0bba3"/><path d="M-9 8v9m17-11 7 8" stroke="#d5c7a6" stroke-width="3"/><text y="40" fill="#edf0dc" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700">КОННИЦА</text><text y="52" fill="#bad0ad" text-anchor="middle" font-family="Arial" font-size="9">8</text></g>
+  <!-- enemy -->
+  <g transform="translate(296 238)"><circle r="23" fill="#482d28" stroke="#bd735d" stroke-width="2"/><path d="M-12 8v-13l12-8 12 8V8z" fill="#a55f4d" stroke="#db9a73"/><path d="M-15-5h30" stroke="#482d28" stroke-width="3"/><text y="36" fill="#f2ded0" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700">ГАРНИЗОН</text><text y="48" fill="#e8a38c" text-anchor="middle" font-family="Arial" font-size="9">14</text></g>
+  <!-- rally point / tactical callouts -->
+  <path d="M94 300Q126 272 158 260" fill="none" stroke="#e9c46e" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 8 4 0 8z" fill="#e9c46e"/></marker></defs>
+  <rect x="27" y="181" width="106" height="25" rx="12" fill="#17201b" stroke="#83906a"/><circle cx="41" cy="193" r="4" fill="#a7d29c"/><text x="51" y="197" fill="#dce5cf" font-family="Arial" font-size="10">МОИ 38 · ВРАГ 14</text>
+  <rect x="266" y="181" width="94" height="25" rx="12" fill="#17201b" stroke="#83906a"/><text x="313" y="198" fill="#d9d4bd" text-anchor="middle" font-family="Arial" font-size="10">⏱ 01:24</text>
+  <!-- status strip -->
+  <rect x="16" y="581" width="358" height="43" rx="11" fill="#202b24" stroke="#465443"/>
+  <circle cx="36" cy="602" r="8" fill="#89b281"/><path d="M32 602l3 3 6-7" fill="none" stroke="#122018" stroke-width="2"/><text x="53" y="599" fill="#dce1d0" font-family="Arial" font-size="11" font-weight="700">Переправа удерживается</text><text x="53" y="614" fill="#a9b19e" font-family="Arial" font-size="9">Лучники прикрывают подход к складу</text><text x="350" y="607" fill="#e1c47c" text-anchor="end" font-family="Arial" font-size="10">›</text>
+  <!-- command panel -->
+  <text x="20" y="650" fill="#eee5cd" font-family="Georgia,serif" font-size="15" font-weight="700">ПРИКАЗ ОТРЯДАМ</text><text x="369" y="650" fill="#aeb29e" text-anchor="end" font-family="Arial" font-size="9">выберите отряд</text>
+  <g font-family="Arial,sans-serif">
+    <rect x="16" y="663" width="111" height="78" rx="12" fill="#26352b" stroke="#9bb78a" stroke-width="1.5"/><circle cx="39" cy="687" r="13" fill="#465a45"/><path d="M31 690v-9l8-5 8 5v9z" fill="#d1c49d"/><text x="58" y="685" fill="#f1ead8" font-size="10" font-weight="700">ПЕХОТА</text><text x="58" y="699" fill="#b9c5ae" font-size="9">18 бойцов</text><rect x="24" y="713" width="95" height="20" rx="7" fill="#52714c"/><text x="71" y="727" fill="#eff0dc" text-anchor="middle" font-size="9" font-weight="700">УДЕРЖИВАТЬ</text>
+    <rect x="139" y="663" width="111" height="78" rx="12" fill="#202b24" stroke="#4b5b48"/><circle cx="162" cy="687" r="13" fill="#465a45"/><path d="M154 690q8-16 16 0l-2 4h-12z" fill="#d1c49d"/><text x="181" y="685" fill="#f1ead8" font-size="10" font-weight="700">ЛУЧНИКИ</text><text x="181" y="699" fill="#b9c5ae" font-size="9">12 бойцов</text><rect x="147" y="713" width="95" height="20" rx="7" fill="#344439"/><text x="194" y="727" fill="#d2dbc9" text-anchor="middle" font-size="9">ПРИКРЫВАТЬ</text>
+    <rect x="262" y="663" width="112" height="78" rx="12" fill="#202b24" stroke="#4b5b48"/><circle cx="285" cy="687" r="13" fill="#465a45"/><path d="M277 690q8-13 16-1l-2 5h-13z" fill="#c89062"/><text x="304" y="685" fill="#f1ead8" font-size="10" font-weight="700">КОННИЦА</text><text x="304" y="699" fill="#b9c5ae" font-size="9">8 бойцов</text><rect x="270" y="713" width="96" height="20" rx="7" fill="#344439"/><text x="318" y="727" fill="#d2dbc9" text-anchor="middle" font-size="9">В РЕЗЕРВЕ</text>
+  </g>
+  <rect x="16" y="754" width="358" height="56" rx="14" fill="url(#gold)" stroke="#f2d48c"/><path d="M37 780h21m-7-7 7 7-7 7" fill="none" stroke="#392d1a" stroke-width="2"/><text x="205" y="778" fill="#2c2519" text-anchor="middle" font-family="Arial" font-size="14" font-weight="800" letter-spacing=".5">ИЗМЕНИТЬ ПРИКАЗ</text><text x="205" y="796" fill="#49391f" text-anchor="middle" font-family="Arial" font-size="9">выберите отряд на карте или в списке</text>
+  <text x="195" y="829" fill="#778071" text-anchor="middle" font-family="Arial" font-size="9" letter-spacing="1">ЛЕГИОНЫ · КОНЦЕПТ БОЕВОГО ЭКРАНА</text>
+</svg>

@@ -1,0 +1,79 @@
+<!doctype html>
+<!-- PROTOTYPE - NOT FOR PRODUCTION. Mobile-first objective-control combat experiment. -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#18211c">
+<title>Легионы — бой за цель</title>
+<style>
+:root{color-scheme:dark;--bg:#121914;--panel:#202b24;--line:#495744;--gold:#e1bd70;--ink:#f1ead8;--muted:#aeb6a4;--green:#8eaf83;--red:#c87961}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100dvh}
+.app{width:min(100%,480px);margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+header{height:60px;display:flex;align-items:center;gap:12px}.back{color:#e8dec4;text-decoration:none;font-size:24px;width:28px}.heading{flex:1}.heading strong{display:block;font:700 17px Georgia,serif;letter-spacing:.7px}.heading small{color:var(--muted);font-size:10px;letter-spacing:1.2px}.pause{width:42px;height:38px;border:1px solid var(--line);border-radius:10px;background:#253029;color:var(--ink);font-size:16px}
+.goal{min-height:66px;border:1px solid #586449;border-radius:13px;background:linear-gradient(#29352c,#1b251f);padding:10px 12px;display:flex;align-items:center;gap:12px}.goal-icon{font-size:24px;color:var(--gold)}.goal-copy{flex:1}.eyebrow{font-size:9px;letter-spacing:1.2px;color:var(--gold);font-weight:800}.goal-copy strong{display:block;font:700 15px Georgia,serif;margin-top:2px}.progress{width:31%;}.meter{height:9px;background:#111813;border-radius:9px;overflow:hidden}.meter i{display:block;width:50%;height:100%;background:linear-gradient(#f0cb75,#b8873e);border-radius:9px;transition:width .35s}.progress small{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:5px}
+.map{position:relative;isolation:isolate;height:min(48vh,370px);min-height:270px;overflow:hidden;border:1px solid #758060;border-radius:15px;background:radial-gradient(ellipse at 25% 24%,#667953 0 1px,transparent 2px),radial-gradient(ellipse at 68% 67%,#71815a 0 1px,transparent 2px),linear-gradient(145deg,#536747,#485c40);background-size:23px 25px,29px 26px,auto}
+.map:before{content:"";position:absolute;z-index:-1;left:-10%;top:48%;width:120%;height:76px;transform:rotate(-8deg);background:#4b7180;border-block:3px solid #79949a;clip-path:polygon(0 23%,14% 0,25% 40%,42% 10%,54% 43%,72% 13%,83% 52%,100% 18%,100% 82%,84% 100%,72% 62%,56% 94%,41% 60%,25% 89%,13% 50%,0 76%)}
+.road{position:absolute;left:48%;top:-8%;width:28px;height:118%;transform:rotate(5deg);background:repeating-linear-gradient(180deg,#c0ae84 0 9px,#9b8967 9px 12px);border-inline:4px solid #776649;clip-path:polygon(22% 0,100% 0,72% 100%,0 100%)}
+.bridge{position:absolute;left:44%;top:47%;width:80px;height:27px;transform:rotate(-8deg);border:3px solid #d0a46c;background:repeating-linear-gradient(90deg,#8a6342 0 10px,#a87a4e 10px 13px);box-shadow:0 2px 6px #24352f}
+.place{position:absolute;width:78px;text-align:center;transform:translate(-50%,-50%);z-index:2}.building{width:52px;height:42px;margin:auto;position:relative;filter:drop-shadow(0 4px 2px #253326)}.building:before{content:"";position:absolute;inset:14px 5px 0;background:#826846;border:2px solid #d1b174;border-radius:3px}.building:after{content:"";position:absolute;left:0;top:3px;width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-bottom:19px solid #a25740;filter:drop-shadow(0 1px #d1a06a)}.door{position:absolute;z-index:1;left:22px;bottom:0;width:9px;height:15px;background:#443a2b;border:1px solid #c8ac73}.placelabel{display:inline-block;margin-top:3px;padding:3px 5px;border-radius:5px;background:#142019dd;color:#f2d68a;font-size:9px;font-weight:800;white-space:nowrap}
+.squad{position:absolute;z-index:3;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#263a33;border:2px solid #9bb791;box-shadow:0 3px 9px #1b271f99;transition:left .6s,top .6s,opacity .3s}.squad.enemy{background:#482d28;border-color:#bd735d}.sigil{font-size:20px;line-height:1}.count{position:absolute;bottom:-6px;right:-7px;background:#152019;color:#f3ead7;border:1px solid #869177;border-radius:8px;padding:1px 4px;font-size:9px;font-weight:800}.unitname{position:absolute;top:48px;white-space:nowrap;font-size:9px;font-weight:800;text-shadow:0 1px 3px #101710}.target-ring{position:absolute;left:50%;top:50%;width:112px;height:112px;transform:translate(-50%,-50%);border:2px dashed #ebcb7d;border-radius:50%;opacity:.75}.route{position:absolute;z-index:1;left:28%;top:34%;height:2px;width:22%;background:repeating-linear-gradient(90deg,#f1ce76 0 7px,transparent 7px 13px);transform:rotate(-30deg);transform-origin:left center}.maptag{position:absolute;top:10px;left:10px;padding:6px 9px;border-radius:12px;background:#17201be8;border:1px solid #83906a;font-size:10px;font-weight:800}.timer{position:absolute;right:10px;top:10px;padding:6px 9px;border-radius:12px;background:#17201be8;border:1px solid #83906a;font-size:10px;font-variant-numeric:tabular-nums}.legend{position:absolute;bottom:9px;left:9px;color:#e7e2ce;background:#17201bd9;padding:5px 8px;border-radius:7px;font-size:9px}
+.status{min-height:43px;border:1px solid #465443;border-radius:11px;background:#202b24;padding:8px 11px;display:flex;align-items:center;gap:9px}.status .dot{width:16px;height:16px;border-radius:50%;background:#89b281;color:#152019;display:grid;place-items:center;font-size:11px;font-weight:bold}.status p{margin:0;line-height:1.3}.status strong{display:block;font-size:11px}.status small{color:var(--muted);font-size:9px}
+.orders-title{display:flex;align-items:center;justify-content:space-between;margin:2px 3px 0}.orders-title strong{font:700 15px Georgia,serif;letter-spacing:.4px}.orders-title small{font-size:9px;color:var(--muted)}.roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.card{min-width:0;min-height:82px;padding:8px;border-radius:12px;border:1px solid var(--line);background:#202b24;color:var(--ink);text-align:left;touch-action:manipulation}.card.selected{background:#29382d;border-color:#9bb78a;box-shadow:0 0 0 1px #9bb78a inset}.cardtop{display:flex;align-items:center;gap:5px}.cardtop .icon{font-size:16px}.cardtop b{font-size:9px;white-space:nowrap}.card small{display:block;color:#b9c5ae;font-size:9px;margin:2px 0 7px 22px}.orderchip{display:block;padding:4px 3px;text-align:center;border-radius:6px;background:#344439;color:#d2dbc9;font-size:8px;font-weight:800;white-space:nowrap}.card.selected .orderchip{background:#52714c;color:#f2f0df}
+.commands{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.command{min-height:45px;border-radius:10px;background:#29372c;border:1px solid #536449;color:#e5e7d6;font-size:11px;font-weight:800;touch-action:manipulation}.command:active,.card:active{transform:scale(.98)}.command.primary{grid-column:1/-1;min-height:50px;background:linear-gradient(#f0cb75,#b8873e);border-color:#f2d48c;color:#302719;font-size:13px}.command:disabled{opacity:.45}.hint{text-align:center;color:#899284;font-size:9px;margin:0 0 2px}
+.overlay{position:fixed;inset:0;background:#07100bd9;display:none;align-items:center;justify-content:center;padding:24px;z-index:9}.overlay.show{display:flex}.dialog{width:min(100%,350px);border:1px solid #687552;border-radius:18px;background:linear-gradient(#29352c,#18211c);padding:23px;text-align:center;box-shadow:0 14px 50px #0009}.dialog h2{font:700 27px Georgia,serif;margin:0 0 8px}.dialog p{color:#c7cbb8;font-size:13px;line-height:1.5}.dialog button{width:100%;height:48px;margin-top:8px;border:0;border-radius:10px;background:linear-gradient(#f0cb75,#b8873e);font-weight:900;color:#302719;font-size:13px}
+@media(min-width:700px){body{padding:18px 0}.app{border:1px solid #344237;border-radius:22px;min-height:calc(100dvh - 36px);box-shadow:0 15px 70px #0006;padding:8px 14px 14px}.map{height:min(45vh,370px)}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header><a class="back" href="prototype.html" aria-label="Назад">‹</a><div class="heading"><strong>СХВАТКА ЗА СКЛАД</strong><small>СЕВЕРНЫЙ ТРАКТ · ТЕСТ БОЯ ЗА ЦЕЛЬ</small></div><button class="pause" id="pause" aria-label="Пауза">Ⅱ</button></header>
+  <section class="goal"><div class="goal-icon">⬡</div><div class="goal-copy"><div class="eyebrow">ЦЕЛЬ МАТЧА</div><strong id="goalText">Захватить склад</strong></div><div class="progress"><div class="meter"><i id="meter"></i></div><small><span>Захват</span><b id="percent">0%</b></small></div></section>
+  <section class="map" id="map" aria-label="Поле боя"><div class="road"></div><div class="bridge"></div><div class="target-ring"></div><div class="place" style="left:51%;top:28%"><div class="building"><i class="door"></i></div><span class="placelabel">СКЛАД · НЕЙТРАЛЕН</span></div><div class="maptag">⚔ СИЛЫ: <span id="strength">38</span> · ВРАГ: <span id="enemyStrength">14</span></div><div class="timer">⏱ <span id="time">01:30</span></div><div class="route" id="route"></div><div class="legend">◉ Ваша армия　 ◉ Гарнизон</div>
+    <div class="squad" id="inf"><span class="sigil">🛡</span><span class="count">18</span><span class="unitname">Пехота</span></div>
+    <div class="squad" id="arc"><span class="sigil">🏹</span><span class="count">12</span><span class="unitname">Лучники</span></div>
+    <div class="squad" id="cav"><span class="sigil">🐎</span><span class="count">8</span><span class="unitname">Конница</span></div>
+    <div class="squad enemy" id="guard"><span class="sigil">⚔</span><span class="count">14</span><span class="unitname">Гарнизон</span></div>
+  </section>
+  <section class="status"><span class="dot" id="statusIcon">✓</span><p><strong id="statusTitle">Переправа удерживается</strong><small id="statusDetail">Лучники прикрывают подход к складу</small></p></section>
+  <div class="orders-title"><strong>ПРИКАЗ ОТРЯДАМ</strong><small>выберите отряд</small></div>
+  <section class="roster" id="roster">
+    <button class="card selected" data-unit="inf"><span class="cardtop"><span class="icon">🛡</span><b>ПЕХОТА</b></span><small>18 бойцов</small><span class="orderchip">УДЕРЖИВАТЬ</span></button>
+    <button class="card" data-unit="arc"><span class="cardtop"><span class="icon">🏹</span><b>ЛУЧНИКИ</b></span><small>12 бойцов</small><span class="orderchip">ПРИКРЫВАТЬ</span></button>
+    <button class="card" data-unit="cav"><span class="cardtop"><span class="icon">🐎</span><b>КОННИЦА</b></span><small>8 бойцов</small><span class="orderchip">В РЕЗЕРВЕ</span></button>
+  </section>
+  <section class="commands"><button class="command" data-order="hold">🛡 Удерживать</button><button class="command" data-order="cover">🏹 Прикрывать</button><button class="command" data-order="reserve">⏳ В резерв</button><button class="command" data-order="assault">⚔ Штурмовать</button><button class="command primary" id="commit">➤　ИЗМЕНИТЬ ПРИКАЗ</button></section>
+  <p class="hint">Выберите отряд, затем приказ. Коснитесь карты, чтобы выбрать точку назначения.</p>
+</main>
+<div class="overlay" id="overlay"><div class="dialog"><h2 id="resultTitle">Победа!</h2><p id="resultText"></p><button id="again">СЫГРАТЬ ЕЩЁ</button></div></div>
+<script>
+(()=>{
+const squads={inf:{name:'Пехота',count:18,order:'hold',x:23,y:58,home:[23,58],power:1.0},arc:{name:'Лучники',count:12,order:'cover',x:78,y:56,home:[78,56],power:.8},cav:{name:'Конница',count:8,order:'reserve',x:34,y:83,home:[34,83],power:1.25}};
+const labels={hold:'УДЕРЖИВАТЬ',cover:'ПРИКРЫВАТЬ',reserve:'В РЕЗЕРВЕ',assault:'ШТУРМОВАТЬ'};
+let selected='inf',pending='hold',time=90,capture=0,enemy=14,elapsed=0,paused=false,done=false,moveTarget=null;
+const $=id=>document.getElementById(id), cards=[...document.querySelectorAll('.card')];
+function setPos(id,x,y){const el=$(id);el.style.left=x+'%';el.style.top=y+'%'}
+function render(){for(const id in squads){const s=squads[id];setPos(id,s.x,s.y);document.querySelector('[data-unit="'+id+'"] .orderchip').textContent=labels[s.order]}
+ $('meter').style.width=Math.max(0,Math.min(100,capture))+'%';$('percent').textContent=Math.floor(capture)+'%';$('time').textContent='00:'+String(Math.max(0,Math.ceil(time))).padStart(2,'0');$('enemyStrength').textContent=enemy;$('strength').textContent=Object.values(squads).reduce((n,s)=>n+s.count,0);
+ const pressure=Object.values(squads).filter(s=>s.order==='assault'||s.order==='hold').length;
+ $('statusTitle').textContent=enemy>0?'Переправа удерживается':'Путь к складу открыт';$('statusDetail').textContent=pressure>=2?'Отряды давят на гарнизон — захват идёт':'Нужно отправить отряд на штурм или удержание точки';
+ $('guard').querySelector('.count').textContent=enemy;$('guard').style.opacity=enemy===0?'.25':'1';
+}
+function finish(win){if(done)return;done=true;$('resultTitle').textContent=win?'Склад захвачен!':'Не удалось удержать цель';$('resultText').textContent=win?'Ваши приказы помогли продавить гарнизон. Захват: '+Math.floor(capture)+'%.':'Время вышло. Перестройте отряды и попробуйте другой план.';$('overlay').classList.add('show')}
+function update(dt){if(paused||done)return;time-=dt;elapsed+=dt;if(time<=0){time=0;finish(capture>=100);return}
+ const deployed=Object.values(squads).filter(s=>s.order!=='reserve').length;
+ if(deployed>=2){capture+=dt*(enemy>0?1.25:2.0);if(elapsed%4<dt)enemy=Math.max(0,enemy-(squads.cav.order==='assault'?2:1));}
+ else capture=Math.max(0,capture-dt*.35);
+ // The garrison periodically contests the bridge; an archer cover order reduces its pressure.
+ if(Math.floor(elapsed)%12===0&&Math.floor(elapsed-dt)!==Math.floor(elapsed)&&deployed<2){capture=Math.max(0,capture-4);$('statusDetail').textContent='Гарнизон отбросил атакующих от переправы'}
+ if(capture>=100){capture=100;finish(true)}render()}
+cards.forEach(card=>card.addEventListener('click',()=>{selected=card.dataset.unit;cards.forEach(c=>c.classList.toggle('selected',c===card));pending=squads[selected].order}));
+document.querySelectorAll('[data-order]').forEach(btn=>btn.addEventListener('click',()=>{pending=btn.dataset.order;$('statusDetail').textContent=squads[selected].name+': приказ «'+labels[pending].toLowerCase()+'» готов к отправке'}));
+$('commit').addEventListener('click',()=>{if(done)return;squads[selected].order=pending;const s=squads[selected];if(pending==='assault'||pending==='hold'){s.x=selected==='inf'?44:selected==='arc'?59:52;s.y=selected==='arc'?38:48}else if(pending==='cover'){s.x=selected==='arc'?67:40;s.y=selected==='arc'?44:59}else{s.x=s.home[0];s.y=s.home[1]}render()});
+$('map').addEventListener('click',e=>{if(e.target.closest('.squad,.place,.maptag,.timer,.legend'))return;const r=$('map').getBoundingClientRect(),s=squads[selected];s.x=(e.clientX-r.left)/r.width*100;s.y=(e.clientY-r.top)/r.height*100;s.order=pending;render()});
+$('pause').addEventListener('click',()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';if(paused){$('statusTitle').textContent='Бой приостановлен';$('statusDetail').textContent='Нажмите ▶, чтобы продолжить'}});
+$('again').addEventListener('click',()=>location.reload());let last=performance.now();function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;update(dt);requestAnimationFrame(loop)}render();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

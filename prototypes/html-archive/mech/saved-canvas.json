@@ -1,0 +1,68 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Formation.dc.html": {
+      "h": 844,
+      "title": "3 · Строй и фланги",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "General.dc.html": {
+      "h": 844,
+      "title": "5 · Полководец на поле",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Heights.dc.html": {
+      "h": 844,
+      "title": "4 · Удержание высот",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "1 · Линия фронта (рекомендую)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Plan.dc.html": {
+      "h": 844,
+      "title": "2 · План и исполнение",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-02T15:54:52Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "head": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Легионы — 5 вариантов механики боя",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Plan.dc.html",
+    "Formation.dc.html",
+    "Heights.dc.html",
+    "General.dc.html"
+  ],
+  "pages": [],
+  "title": "Легионы — 5 механик боя"
+}

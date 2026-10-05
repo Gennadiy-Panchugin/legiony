@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Три фланга</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&amp;family=Alegreya+Sans:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#d9a441}a:hover{color:#f0c66a}
+.pushR{animation:pushR 1.8s ease-in-out infinite}
+@keyframes pushR{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.pushB{animation:pushB 1.8s ease-in-out infinite}
+@keyframes pushB{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.flow{stroke-dasharray:18 8;animation:flow 1.3s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-26}}
+.march{animation:march 30s linear infinite}
+@keyframes march{to{stroke-dashoffset:-600}}
+.spin{transform-box:fill-box;transform-origin:center;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.14)}}
+.blink{animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.bob{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px) rotate(-2deg)}}
+.ram{animation:ram 1.4s ease-in-out infinite}
+@keyframes ram{50%{transform:translateY(-8px)}}
+.lift{animation:lift 1.6s ease-in-out infinite}
+@keyframes lift{50%{transform:translateY(-5px)}}
+.run{animation:run 2.6s linear infinite}
+@keyframes run{0%{offset-distance:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@media (prefers-reduced-motion: reduce){.pushR,.pushB,.flow,.march,.spin,.pulse,.blink,.bob,.ram,.lift,.run{animation:none}}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #17130e; color: #efe6d2; font-family: 'Alegreya Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="height: 64px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #1e1913; border-bottom: 1px solid #3a3024">
+    <button type="button" aria-label="Сдаться" style="width: 44px; height: 44px; border-radius: 10px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font-size: 18px; cursor: pointer">⚑</button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.15">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #d9a441; font-weight: 700">Вариант 8</span>
+      <span style="font-family: 'Cormorant SC', serif; font-size: 22px; font-weight: 700; letter-spacing: .04em">Три фланга</span>
+      <span style="font-size: 12px; color: #b8aa8c">Вызывайте отряды на нужный фланг</span>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; border: 1px solid #4a3d2c; background: #2a231a; font-size: 13px; font-weight: 700; color: #f6e7bf; white-space: nowrap">2:05</span>
+  </div>
+  <div style="height: 26px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #1e1913; border-bottom: 1px solid #3a3024; font-size: 11px; color: #b8aa8c">
+    <span style="color: #f6d77a; font-weight: 700">Провиант</span>
+    <div style="flex: 1 1 auto; height: 8px; border-radius: 999px; background: #3a3024; overflow: hidden"><div style="width: 62%; height: 100%; background: #d9a441"></div></div>
+    <span style="color: #f6d77a; font-weight: 700">6 / 10</span></div>
+  <div style="flex: 1 1 auto; position: relative; min-height: 0">
+    <svg width="390" height="630" viewBox="0 0 390 630" style="display: block" role="img" aria-label="Три фланга">
+      <defs>
+        <marker id="arR" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c0261b"/></marker>
+        <marker id="arB" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f6fd6"/></marker>
+        <marker id="arW" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fff8e6"/></marker>
+        <marker id="arG" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#d9a441"/></marker>
+      </defs>
+      
+  <rect x="0" y="0" width="390" height="630" fill="#e6d6ad"/>
+  <circle cx="70" cy="120" r="90" fill="#d9c493" opacity=".35"/>
+  <circle cx="320" cy="470" r="120" fill="#d4bd88" opacity=".3"/>
+  <circle cx="240" cy="60" r="60" fill="#f1e4c3" opacity=".5"/>
+  <rect x="10" y="10" width="370" height="610" fill="none" stroke="#4a3420" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="2 5"/>
+      <path d="M10 40 H380 V80 H10 Z" fill="#2f6fd6" fill-opacity=".18"/><path d="M177 70L195 44L213 70Z" fill="#2f6fd6" stroke="#4a3420" stroke-width="1.6"/><path d="M189 70L195 56L201 70Z" fill="#2a1c10"/><path d="M195 44V30" stroke="#4a3420" stroke-width="1.6"/><path d="M195 30l12 4l-12 4z" fill="#2f6fd6"/><g><rect x="129.6" y="81" width="130.8" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="195" y="94" text-anchor="middle" font-size="11" font-weight="700" fill="#c7d6ff" font-family="Alegreya Sans, sans-serif">Ворота врага · 74%</text></g>
+  <path d="M10 560 H380 V600 H10 Z" fill="#c0261b" fill-opacity=".15"/><path d="M80 110 V540" stroke="#bfae84" stroke-width="54" stroke-linecap="round" opacity=".55"/>
+    <path d="M80 110 V540" stroke="#4a3420" stroke-width="1" stroke-dasharray="3 7" class="march" opacity=".5"/>
+    <path d="M50 300 H110" stroke="#2a1c10" stroke-width="3"/>
+    <path d="M79.8 350.9h3.2v4.4h-3.2zM82.2 338.2h3.2v4.4h-3.2zM95.4 334.2h3.2v4.4h-3.2zM69.9 324.0h3.2v4.4h-3.2zM92.8 313.8h3.2v4.4h-3.2zM87.5 327.3h3.2v4.4h-3.2zM71.9 310.1h3.2v4.4h-3.2zM85.6 336.7h3.2v4.4h-3.2zM90.6 311.8h3.2v4.4h-3.2zM76.5 336.6h3.2v4.4h-3.2zM82.5 334.5h3.2v4.4h-3.2zM81.9 337.2h3.2v4.4h-3.2zM74.5 309.4h3.2v4.4h-3.2zM91.5 326.8h3.2v4.4h-3.2zM91.5 313.6h3.2v4.4h-3.2zM86.0 321.4h3.2v4.4h-3.2zM94.4 320.0h3.2v4.4h-3.2zM92.2 319.4h3.2v4.4h-3.2zM83.5 326.4h3.2v4.4h-3.2zM92.3 322.7h3.2v4.4h-3.2zM62.2 327.2h3.2v4.4h-3.2zM86.1 329.2h3.2v4.4h-3.2zM80.5 337.9h3.2v4.4h-3.2zM87.2 328.8h3.2v4.4h-3.2zM84.6 347.6h3.2v4.4h-3.2zM88.0 315.7h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/>
+    <path d="M79.3 289.8h3.2v4.4h-3.2zM94.9 275.4h3.2v4.4h-3.2zM79.5 268.2h3.2v4.4h-3.2zM91.7 261.0h3.2v4.4h-3.2zM93.9 264.8h3.2v4.4h-3.2zM58.4 272.3h3.2v4.4h-3.2zM65.4 274.1h3.2v4.4h-3.2zM62.4 279.3h3.2v4.4h-3.2zM76.1 274.4h3.2v4.4h-3.2zM71.6 290.1h3.2v4.4h-3.2zM96.0 278.7h3.2v4.4h-3.2zM97.1 259.5h3.2v4.4h-3.2zM89.7 261.2h3.2v4.4h-3.2zM100.6 263.3h3.2v4.4h-3.2zM100.7 262.6h3.2v4.4h-3.2zM76.8 250.9h3.2v4.4h-3.2zM62.1 265.8h3.2v4.4h-3.2zM92.2 255.2h3.2v4.4h-3.2zM69.4 274.3h3.2v4.4h-3.2zM96.7 257.7h3.2v4.4h-3.2zM89.8 256.6h3.2v4.4h-3.2zM64.2 262.0h3.2v4.4h-3.2z" class="pushB" fill="#2f6fd6"/><path d="M195 110 V540" stroke="#bfae84" stroke-width="54" stroke-linecap="round" opacity=".55"/>
+    <path d="M195 110 V540" stroke="#4a3420" stroke-width="1" stroke-dasharray="3 7" class="march" opacity=".5"/>
+    <path d="M165 230 H225" stroke="#2a1c10" stroke-width="3"/>
+    <path d="M194.7 282.0h3.2v4.4h-3.2zM202.4 254.1h3.2v4.4h-3.2zM192.1 248.8h3.2v4.4h-3.2zM204.8 261.0h3.2v4.4h-3.2zM180.9 276.0h3.2v4.4h-3.2zM179.0 271.7h3.2v4.4h-3.2zM184.3 241.9h3.2v4.4h-3.2zM183.2 272.8h3.2v4.4h-3.2zM216.2 258.3h3.2v4.4h-3.2zM194.2 259.2h3.2v4.4h-3.2zM206.0 246.6h3.2v4.4h-3.2zM201.9 253.5h3.2v4.4h-3.2zM201.2 247.9h3.2v4.4h-3.2zM189.8 258.1h3.2v4.4h-3.2zM186.9 247.8h3.2v4.4h-3.2zM182.5 265.4h3.2v4.4h-3.2zM202.2 252.0h3.2v4.4h-3.2zM191.9 274.6h3.2v4.4h-3.2zM192.3 239.6h3.2v4.4h-3.2zM201.4 244.6h3.2v4.4h-3.2zM194.2 276.4h3.2v4.4h-3.2zM178.0 255.8h3.2v4.4h-3.2zM199.4 253.4h3.2v4.4h-3.2zM180.9 274.6h3.2v4.4h-3.2zM190.9 259.8h3.2v4.4h-3.2zM209.0 262.1h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/>
+    <path d="M194.2 220.9h3.2v4.4h-3.2zM193.9 183.6h3.2v4.4h-3.2zM181.6 213.6h3.2v4.4h-3.2zM188.9 211.8h3.2v4.4h-3.2zM180.0 204.7h3.2v4.4h-3.2zM211.5 193.1h3.2v4.4h-3.2zM181.8 205.8h3.2v4.4h-3.2zM188.2 190.4h3.2v4.4h-3.2zM188.6 199.2h3.2v4.4h-3.2zM179.3 186.7h3.2v4.4h-3.2zM196.4 189.2h3.2v4.4h-3.2zM176.8 189.7h3.2v4.4h-3.2zM214.7 200.0h3.2v4.4h-3.2zM177.1 194.3h3.2v4.4h-3.2zM195.6 182.7h3.2v4.4h-3.2zM187.1 219.7h3.2v4.4h-3.2zM182.9 200.0h3.2v4.4h-3.2zM194.2 218.2h3.2v4.4h-3.2zM193.1 206.5h3.2v4.4h-3.2zM196.2 195.9h3.2v4.4h-3.2zM182.1 192.6h3.2v4.4h-3.2zM201.6 207.4h3.2v4.4h-3.2z" class="pushB" fill="#2f6fd6"/><path d="M310 110 V540" stroke="#bfae84" stroke-width="54" stroke-linecap="round" opacity=".55"/>
+    <path d="M310 110 V540" stroke="#4a3420" stroke-width="1" stroke-dasharray="3 7" class="march" opacity=".5"/>
+    <path d="M280 360 H340" stroke="#2a1c10" stroke-width="3"/>
+    <path d="M309.9 396.5h3.2v4.4h-3.2zM300.8 385.2h3.2v4.4h-3.2zM307.5 392.5h3.2v4.4h-3.2zM302.8 392.5h3.2v4.4h-3.2zM325.4 374.4h3.2v4.4h-3.2zM319.4 377.6h3.2v4.4h-3.2zM297.2 374.1h3.2v4.4h-3.2zM304.6 386.2h3.2v4.4h-3.2zM323.6 406.5h3.2v4.4h-3.2zM328.5 380.5h3.2v4.4h-3.2zM301.1 387.1h3.2v4.4h-3.2zM299.4 386.5h3.2v4.4h-3.2zM328.7 383.0h3.2v4.4h-3.2zM321.2 406.6h3.2v4.4h-3.2zM304.7 391.1h3.2v4.4h-3.2zM326.0 392.3h3.2v4.4h-3.2zM319.7 372.3h3.2v4.4h-3.2zM304.3 377.7h3.2v4.4h-3.2zM294.2 380.6h3.2v4.4h-3.2zM305.5 371.9h3.2v4.4h-3.2zM324.7 389.1h3.2v4.4h-3.2zM317.9 395.6h3.2v4.4h-3.2zM302.6 392.5h3.2v4.4h-3.2zM312.0 373.2h3.2v4.4h-3.2zM314.6 377.1h3.2v4.4h-3.2zM312.4 401.2h3.2v4.4h-3.2z" class="pushR" fill="#c0261b"/>
+    <path d="M309.1 351.9h3.2v4.4h-3.2zM294.9 337.7h3.2v4.4h-3.2zM325.1 333.9h3.2v4.4h-3.2zM310.6 318.4h3.2v4.4h-3.2zM326.1 326.0h3.2v4.4h-3.2zM300.0 338.2h3.2v4.4h-3.2zM298.5 337.2h3.2v4.4h-3.2zM323.9 316.9h3.2v4.4h-3.2zM306.7 323.8h3.2v4.4h-3.2zM326.2 319.8h3.2v4.4h-3.2zM290.8 334.8h3.2v4.4h-3.2zM309.7 351.7h3.2v4.4h-3.2zM318.0 337.2h3.2v4.4h-3.2zM319.3 342.5h3.2v4.4h-3.2zM300.2 325.7h3.2v4.4h-3.2zM315.3 326.1h3.2v4.4h-3.2zM289.6 334.8h3.2v4.4h-3.2zM300.3 315.8h3.2v4.4h-3.2zM322.2 347.1h3.2v4.4h-3.2zM306.9 321.1h3.2v4.4h-3.2zM304.8 341.9h3.2v4.4h-3.2zM303.4 312.0h3.2v4.4h-3.2z" class="pushB" fill="#2f6fd6"/><g><rect x="37.7" y="509" width="84.6" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="80" y="522" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">Левый фланг</text></g><g><rect x="172.5" y="509" width="45" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="195" y="522" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">Центр</text></g><g><rect x="264.4" y="509" width="91.19999999999999" height="18" rx="4" fill="#1e1913" fill-opacity=".85"/><text x="310" y="522" text-anchor="middle" font-size="11" font-weight="700" fill="#f6e7bf" font-family="Alegreya Sans, sans-serif">Правый фланг</text></g>
+  <path d="M195 470 V300" stroke="#c0261b" stroke-width="7" fill="none" opacity=".6" class="flow" marker-end="url(#arR)"/><circle cx="0" cy="0" r="3.4" fill="#c0261b" stroke="#fff8e6" stroke-width="1" class="run" style="offset-path: path('M195 470 V300'); offset-rotate: 0deg; animation-delay: 0s"/><circle cx="0" cy="0" r="3.4" fill="#c0261b" stroke="#fff8e6" stroke-width="1" class="run" style="offset-path: path('M195 470 V300'); offset-rotate: 0deg; animation-delay: -1.3s"/>
+    </svg>
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; justify-content: center">
+      <div style="max-width: 100%; padding: 9px 14px; border-radius: 12px; background: rgba(23,19,14,.92); border: 1px solid #d9a441; color: #f6d77a; font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3">Выберите отряд снизу и проведите его на фланг. Пробейте ворота быстрее врага</div>
+    </div>
+  </div>
+  <div style="height: 86px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #1e1913; border-top: 1px solid #3a3024">
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14"/></svg><span>Пехота · 3</span></button>
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #d9a441; background: #d9a441; color: #1e1408; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4c8 4 8 12 0 16"/><path d="M6 12h14"/></svg><span>Лучники · 4</span></button>
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16h14l2-6-5-2"/></svg><span>Конница · 5</span></button>
+      <button type="button" style="flex: 1 1 0; min-width: 0; height: 52px; border-radius: 12px; border: 1px solid #4a3d2c; background: #2a231a; color: #efe6d2; font: 700 13px 'Alegreya Sans', sans-serif; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h15M15 8l4 4-4 4"/></svg><span>Таран · 7</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1000" viewBox="0 0 750 1000">
+<defs>
+ <linearGradient id="screen" x2="0" y2="1"><stop stop-color="#171713"/><stop offset="1" stop-color="#090b0a"/></linearGradient>
+ <linearGradient id="land" x2=".9" y2="1"><stop stop-color="#a3ad67"/><stop offset=".45" stop-color="#788c4c"/><stop offset="1" stop-color="#45633c"/></linearGradient>
+ <linearGradient id="lowland" x2="0" y2="1"><stop stop-color="#829655"/><stop offset="1" stop-color="#637f46"/></linearGradient>
+ <linearGradient id="water" x2="0" y2="1"><stop stop-color="#326474"/><stop offset=".5" stop-color="#5790a0"/><stop offset="1" stop-color="#284e62"/></linearGradient>
+ <linearGradient id="panel" x2="0" y2="1"><stop stop-color="#2d281d"/><stop offset="1" stop-color="#211b14"/></linearGradient>
+ <pattern id="waterlines" width="34" height="19" patternUnits="userSpaceOnUse"><path d="M2 7q8-5 16 0t16 0M-14 16q8-5 16 0t16 0t16 0" fill="none" stroke="#a2c3bd" stroke-width="1.4" opacity=".4"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#10180f" flood-opacity=".55"/></filter>
+ <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
+</defs>
+<rect width="750" height="1000" rx="28" fill="url(#screen)"/>
+<!-- game header -->
+<text x="24" y="36" fill="#f1ead8" font-family="Arial" font-size="13" font-weight="700">9:41</text><text x="672" y="36" fill="#f1ead8" font-family="Arial" font-size="12">▮▮▮　◉</text>
+<rect x="17" y="54" width="716" height="72" rx="14" fill="url(#panel)" stroke="#594a31"/>
+<rect x="31" y="69" width="43" height="42" rx="11" fill="#443b2a" stroke="#887443"/><path d="M54 79a10 10 0 1 0 9 15M62 78v8h-8" fill="none" stroke="#eddbad" stroke-width="2.5"/>
+<text x="91" y="80" fill="#d4ab56" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.7">АТАКА · ДИОРАМА</text>
+<text x="91" y="103" fill="#f1e6ca" font-family="Georgia" font-size="23" font-weight="700">Переправа</text><text x="91" y="117" fill="#b3a88c" font-family="Arial" font-size="10">Возьмите форт на северном тракте</text>
+<rect x="574" y="70" width="46" height="40" rx="10" fill="#393328" stroke="#655940"/><text x="597" y="96" text-anchor="middle" fill="#e9dfc8" font-family="Arial" font-size="17">♫</text>
+<rect x="630" y="70" width="46" height="40" rx="10" fill="#393328" stroke="#655940"/><text x="653" y="96" text-anchor="middle" fill="#e9dfc8" font-family="Arial" font-size="17">◖</text>
+<rect x="685" y="70" width="36" height="40" rx="15" fill="#393328"/><text x="703" y="94" text-anchor="middle" fill="#e9dfc8" font-family="Arial" font-size="12" font-weight="700">04</text>
+<!-- battlefield frame and island silhouette -->
+<rect x="17" y="137" width="716" height="742" rx="18" fill="#211f19" stroke="#493b27" stroke-width="1.5"/>
+<path d="M77 210 126 177 188 185 228 163 291 184 342 162 400 183 456 166 511 187 571 179 624 208 657 264 645 324 672 377 652 440 669 499 644 552 657 613 628 667 650 724 624 789 574 838 505 850 443 835 380 855 315 835 249 850 185 828 132 800 104 746 119 683 90 626 104 562 78 506 99 445 80 385 103 329 85 272z" fill="#202a22" opacity=".8" transform="translate(0 9)" filter="url(#soft)"/>
+<path d="M77 210 126 177 188 185 228 163 291 184 342 162 400 183 456 166 511 187 571 179 624 208 657 264 645 324 672 377 652 440 669 499 644 552 657 613 628 667 650 724 624 789 574 838 505 850 443 835 380 855 315 835 249 850 185 828 132 800 104 746 119 683 90 626 104 562 78 506 99 445 80 385 103 329 85 272z" fill="url(#land)" stroke="#9ca66a" stroke-width="3"/>
+<!-- large readable terrain regions: highland / open ground / rocky ridge -->
+<path d="M100 266 132 195 228 172 288 192 318 252 279 307 207 323 145 301z" fill="#aeb877" opacity=".9"/>
+<path d="M385 193 456 175 564 190 630 224 652 300 606 341 528 321 476 273 414 276z" fill="#8b9d59" opacity=".83"/>
+<path d="M123 503 181 447 264 451 298 510 267 565 195 579 132 551z" fill="#58734a" opacity=".94"/>
+<path d="M469 414 558 390 639 427 645 503 599 541 515 527 472 480z" fill="#526b45" opacity=".94"/>
+<path d="M154 676 229 633 313 661 329 727 272 789 184 790 133 740z" fill="#829552" opacity=".84"/>
+<path d="M441 659 514 620 611 655 625 733 572 809 483 796 432 745z" fill="#71894c" opacity=".9"/>
+<!-- exposed rocky high ground with light face and cast shadow -->
+<path d="M438 320 497 284 555 302 581 346 550 378 479 370 451 350z" fill="#3b5039" opacity=".8"/>
+<path d="M427 306 476 278 532 290 558 330 535 361 466 353 440 335z" fill="#a49c75" stroke="#c2b88c" stroke-width="2"/>
+<path d="m427 306 49-28 11 31-21 44-26-18z" fill="#d1c79b"/><path d="m476 278 56 12 26 40-40-9-31-12z" fill="#827d64"/><path d="m466 353 21-44 31 12 40 9-23 31z" fill="#6e755b"/>
+<text x="495" y="389" fill="#eee4c9" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700">КАМЕННЫЙ СКЛОН</text>
+<!-- forest mass, dark floor + clean tree silhouettes -->
+<path d="M109 474q55-45 111-10 48-38 92 10v82q-60 47-117 6-48 35-86-3z" fill="#344d39" opacity=".98" stroke="#526b48" stroke-width="2"/>
+<path d="M478 405q54-43 100-8 44-29 74 9v82q-54 35-96 6-44 36-78 0z" fill="#354d38" opacity=".98" stroke="#526b48" stroke-width="2"/>
+<path d="M183 720q43-34 83-4 41-23 68 11v53q-41 34-85 7-39 26-66-5z" fill="#354e39"/>
+<g fill="#24412f" stroke="#71905a" stroke-width="2">
+ <path d="m133 527 17-43 17 43z"/><path d="m167 544 20-54 20 54z"/><path d="m205 528 16-42 16 42z"/><path d="m244 545 19-52 19 52z"/><path d="m278 525 16-41 16 41z"/>
+ <path d="m499 456 17-44 17 44z"/><path d="m532 480 20-55 20 55z"/><path d="m572 461 17-45 17 45z"/><path d="m609 482 18-50 18 50z"/>
+ <path d="m194 759 16-43 16 43z"/><path d="m229 779 18-49 18 49z"/><path d="m271 761 16-43 16 43z"/>
+</g>
+<g fill="#607849"><path d="M148 527v13h5v-13m34 17v12h6v-12m37-16v12h5v-12m43 19v12h5v-12m247-86v13h5v-13m42 19v13h5v-13m42 3v13h5v-13M206 759v12h5v-12m40 20v13h5v-13m36-18v12h5v-12"/></g>
+<!-- river: distinct banks + water pattern -->
+<path d="M103 574q64-28 129 5 55 27 106-2 56-31 110 0 51 30 105-9l38 62q-61 40-123 5-50-28-99 5-61 40-117 7-62-36-116-6l-50-29z" fill="#c0ad76" opacity=".88"/>
+<path d="M108 582q61-26 122 6 55 28 110-3 55-30 108 1 52 30 107-9l31 45q-62 38-121 3-49-29-100 6-59 39-114 5-61-36-111-7l-39-24z" fill="url(#water)"/>
+<path d="M108 582q61-26 122 6 55 28 110-3 55-30 108 1 52 30 107-9l31 45q-62 38-121 3-49-29-100 6-59 39-114 5-61-36-111-7l-39-24z" fill="url(#waterlines)"/>
+<!-- trail network in warm high contrast -->
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M377 791 375 725 373 661 376 614 372 579 376 523 367 472 374 421 368 373 380 324 373 280 378 238" stroke="#574936" stroke-width="19"/>
+ <path d="M377 791 375 725 373 661 376 614 372 579 376 523 367 472 374 421 368 373 380 324 373 280 378 238" stroke="#d0bc8d" stroke-width="12"/>
+ <path d="M377 791 375 725 373 661 376 614 372 579 376 523 367 472 374 421 368 373 380 324 373 280 378 238" stroke="#f1e1b6" stroke-width="1.5" stroke-dasharray="3 7" opacity=".8"/>
+ <path d="M371 527Q304 497 254 457L202 420 175 363" stroke="#574936" stroke-width="14"/><path d="M371 527Q304 497 254 457L202 420 175 363" stroke="#cbb689" stroke-width="8"/>
+ <path d="M379 521Q450 490 515 464L571 426 603 365" stroke="#574936" stroke-width="14"/><path d="M379 521Q450 490 515 464L571 426 603 365" stroke="#cbb689" stroke-width="8"/>
+</g>
+<!-- bridge -->
+<g transform="translate(376 601) rotate(-2)" filter="url(#shadow)"><rect x="-39" y="-17" width="78" height="34" rx="4" fill="#654627" stroke="#e0bd77" stroke-width="3"/><path d="M-31-14v28m13-28v28m13-28v28m13-28v28m13-28v28" stroke="#c5985a" stroke-width="5"/><path d="M-38-13h76M-38 13h76" stroke="#ead19a" stroke-width="2"/></g>
+<rect x="326" y="625" width="98" height="21" rx="10" fill="#16201be8" stroke="#d1b978"/><text x="375" y="639" fill="#f0d999" text-anchor="middle" font-family="Arial" font-size="10" font-weight="800">КАМЕННЫЙ МОСТ</text>
+<!-- strategic landmarks -->
+<g filter="url(#shadow)">
+ <g transform="translate(378 251)"><ellipse cy="20" rx="53" ry="17" fill="#223126"/><path d="M-37 4h74v38h-74z" fill="#8f8061" stroke="#d6c18f" stroke-width="2"/><path d="M-43 5-1-23 44 5l-7 8-38-23-34 23z" fill="#8d4c39" stroke="#d19b69" stroke-width="2"/><path d="M-20 14h12v10h-12zm29 0h12v10H9zM-7 24h15v18H-7z" fill="#473b2b" stroke="#cfb47a" stroke-width="1.4"/><path d="M0-24v-37" stroke="#35281c" stroke-width="3"/><path d="M1-60h31l-12 8 12 8H1z" fill="#4b82cc"/></g>
+ <g transform="translate(177 364)"><path d="M-24 2h48v22h-48z" fill="#866d4a" stroke="#d3bd89" stroke-width="2"/><path d="M-30 3-1-17 30 3l-5 6L-1-8-25 9z" fill="#3e6593"/><path d="M-7 11h14v13H-7z" fill="#493b29"/></g>
+ <g transform="translate(604 365)"><path d="M-28 3h56v26h-56z" fill="#916b43" stroke="#d7bb82" stroke-width="2"/><path d="M-33 3-20-15h40L33 3z" fill="#9b583d" stroke="#dab27a" stroke-width="2"/><path d="M-13 7v18m13-18v18m13-18v18" stroke="#4e3c2a" stroke-width="3"/></g>
+ <g transform="translate(254 456)"><path d="M-22 0h44v23h-44z" fill="#928263" stroke="#d7c696" stroke-width="2"/><path d="M-27 1 0-16 28 1l-5 5L0-8-22 6z" fill="#8b5439"/><path d="M-5 10h10v13H-5z" fill="#493b2b"/></g>
+</g>
+<g font-family="Arial" font-size="10" font-weight="800" text-anchor="middle"><rect x="330" y="290" width="96" height="20" rx="9" fill="#111a15df"/><text x="378" y="304" fill="#f3e9d2">ФОРТ · ЦЕЛЬ</text><rect x="133" y="387" width="88" height="19" rx="9" fill="#111a15df"/><text x="177" y="400" fill="#e3e6d6">СТОРОЖЕВАЯ</text><rect x="562" y="395" width="83" height="19" rx="9" fill="#111a15df"/><text x="603" y="408" fill="#e8dfc8">АМБАР</text></g>
+<!-- subtle cell movement preview, only around selected pikes -->
+<g fill="#f1d26f" fill-opacity=".12" stroke="#f1d26f" stroke-width="1.5" stroke-opacity=".85">
+ <path d="M330 659h43v48h-43zM374 659h43v48h-43zM418 659h43v48h-43zM330 708h43v48h-43zM374 708h43v48h-43zM418 708h43v48h-43zM286 708h43v48h-43zM462 708h43v48h-43z"/>
+</g>
+<!-- enemy formations on high ground / around fort -->
+<g text-anchor="middle" font-family="Arial" filter="url(#shadow)">
+ <g><circle cx="329" cy="321" r="19" fill="#37577a" stroke="#a3c0de" stroke-width="2"/><text x="329" y="328" fill="#f4ead6" font-size="17">🛡</text><rect x="314" y="342" width="30" height="14" rx="7" fill="#17201b"/><text x="329" y="352" fill="#fff0d6" font-size="9" font-weight="800">10</text></g>
+ <g><circle cx="426" cy="321" r="19" fill="#37577a" stroke="#a3c0de" stroke-width="2"/><text x="426" y="328" fill="#f4ead6" font-size="16">🏹</text><rect x="411" y="342" width="30" height="14" rx="7" fill="#17201b"/><text x="426" y="352" fill="#fff0d6" font-size="9" font-weight="800">8</text></g>
+ <g><circle cx="292" cy="426" r="17" fill="#37577a" stroke="#a3c0de" stroke-width="2"/><text x="292" y="432" fill="#f4ead6" font-size="15">🔱</text><rect x="280" y="445" width="25" height="13" rx="6" fill="#17201b"/><text x="292" y="454" fill="#fff0d6" font-size="8" font-weight="800">6</text></g>
+</g>
+<!-- friendly four generals moving north -->
+<g text-anchor="middle" font-family="Arial" filter="url(#shadow)">
+ <g><circle cx="332" cy="753" r="23" fill="#8a4935" stroke="#e6ad7d" stroke-width="2.5"/><text x="332" y="761" fill="#fff0d7" font-size="19">🛡</text><circle cx="352" cy="735" r="9" fill="#e6c36a"/><text x="352" y="739" fill="#2b2419" font-size="9" font-weight="900">1</text><rect x="314" y="778" width="37" height="15" rx="7" fill="#2b211b" stroke="#bc8261"/><text x="332" y="789" fill="#f1e7d5" font-size="8" font-weight="800">МЕЧИ</text></g>
+ <g><circle cx="421" cy="753" r="26" fill="#66532f" stroke="#f0d179" stroke-width="3"/><text x="421" y="761" fill="#fff0d7" font-size="20">🔱</text><circle cx="443" cy="733" r="9" fill="#e6c36a"/><text x="443" y="737" fill="#2b2419" font-size="9" font-weight="900">2</text><rect x="400" y="781" width="43" height="15" rx="7" fill="#282219" stroke="#e0c371"/><text x="421" y="792" fill="#f4dd97" font-size="8" font-weight="900">КОПЬЯ</text></g>
+ <g><circle cx="287" cy="798" r="21" fill="#8a4935" stroke="#d89c72" stroke-width="2"/><text x="287" y="805" fill="#fff0d7" font-size="17">🏹</text><circle cx="305" cy="783" r="8" fill="#e6c36a"/><text x="305" y="786" fill="#2b2419" font-size="8" font-weight="900">3</text></g>
+ <g><circle cx="469" cy="800" r="21" fill="#8a4935" stroke="#d89c72" stroke-width="2"/><text x="469" y="807" fill="#fff0d7" font-size="17">🐎</text><circle cx="487" cy="785" r="8" fill="#e6c36a"/><text x="487" y="788" fill="#2b2419" font-size="8" font-weight="900">4</text></g>
+</g>
+<!-- terrain cues legend -->
+<g font-family="Arial" font-size="9"><rect x="507" y="686" width="119" height="83" rx="10" fill="#142019ed" stroke="#92a078"/><text x="519" y="704" fill="#f0ead7" font-weight="800" letter-spacing=".5">МЕСТНОСТЬ</text><circle cx="520" cy="720" r="5" fill="#354d38"/><text x="531" y="723" fill="#d7dfce">лес: укрытие</text><circle cx="520" cy="739" r="5" fill="#c1b68c"/><text x="531" y="742" fill="#e5ddca">склон: высота</text><circle cx="520" cy="758" r="5" fill="#4d8390"/><text x="531" y="761" fill="#d7e5df">река: преграда</text></g>
+<!-- action strip -->
+<rect x="30" y="823" width="690" height="42" rx="10" fill="#17211a" stroke="#526046"/><circle cx="53" cy="844" r="8" fill="#86a76e"/><path d="M49 844h8m-4-4 4 4-4 4" fill="none" stroke="#17211a" stroke-width="1.5"/><text x="70" y="841" fill="#e5e8d6" font-family="Arial" font-size="11" font-weight="800">ХОД ИГРОКА</text><text x="70" y="856" fill="#aab49d" font-family="Arial" font-size="9">Копейщики выбраны · доступные клетки подсвечены</text><text x="695" y="849" fill="#e4cb7e" text-anchor="end" font-family="Arial" font-size="10" font-weight="800">ДАЛЬШЕ: ЗАНЯТЬ МОСТ</text>
+<!-- bottom commander panel -->
+<rect x="17" y="889" width="716" height="94" rx="15" fill="url(#panel)" stroke="#594b32"/>
+<text x="33" y="911" fill="#f1e6cf" font-family="Georgia" font-size="13" font-weight="700">ГЕНЕРАЛЫ · 4 ОТРЯДА</text><text x="714" y="911" fill="#aaad99" text-anchor="end" font-family="Arial" font-size="9">ВЫБЕРИ ПЛАН НА ЭТОТ ХОД</text>
+<g font-family="Arial" text-anchor="middle">
+ <rect x="29" y="921" width="113" height="48" rx="9" fill="#493927" stroke="#dfbe6c" stroke-width="1.5"/><text x="48" y="941" fill="#fff0d7" font-size="16">🔱</text><text x="92" y="940" fill="#f3e4bd" font-size="9" font-weight="800">МАРК · КОПЬЯ</text><text x="92" y="956" fill="#c7b995" font-size="8">12 бойцов · выбран</text>
+ <rect x="151" y="921" width="113" height="48" rx="9" fill="#302a20" stroke="#685a3d"/><text x="170" y="941" fill="#eee5d0" font-size="16">🛡</text><text x="214" y="940" fill="#e8e2d0" font-size="9" font-weight="800">ЛУЦИЙ · МЕЧИ</text><text x="214" y="956" fill="#aaa895" font-size="8">12 бойцов</text>
+ <rect x="273" y="921" width="113" height="48" rx="9" fill="#302a20" stroke="#685a3d"/><text x="292" y="941" fill="#eee5d0" font-size="16">🏹</text><text x="336" y="940" fill="#e8e2d0" font-size="9" font-weight="800">ТИТ · ЛУКИ</text><text x="336" y="956" fill="#aaa895" font-size="8">10 бойцов</text>
+ <rect x="395" y="921" width="113" height="48" rx="9" fill="#302a20" stroke="#685a3d"/><text x="414" y="941" fill="#eee5d0" font-size="16">🐎</text><text x="458" y="940" fill="#e8e2d0" font-size="9" font-weight="800">ГАЙ · КОННИЦА</text><text x="458" y="956" fill="#aaa895" font-size="8">8 бойцов</text>
+ <rect x="520" y="921" width="190" height="48" rx="10" fill="url(#gold)" stroke="#f3d998"/><text x="615" y="942" fill="#342817" font-size="11" font-weight="900">ПОДТВЕРДИТЬ ХОД</text><text x="615" y="957" fill="#584323" font-size="8">отряды исполнят приказы</text>
+</g>
+</svg>

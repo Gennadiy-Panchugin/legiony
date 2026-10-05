@@ -1,0 +1,634 @@
+<title>Переправа 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  /* one-screen phone board; dark command tent around a parchment field, single committed look */
+  :root { --bg: #17130e; --ink: #efe6d2; --muted: #b8aa8c; --gold: #d9a441; --line: #3a3024; --panel: #1e1913; --btn: #2a231a;
+          --display: 'Cormorant SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: dark; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); }
+  .stage { box-sizing: border-box; min-height: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+  .fit { position: relative; flex: none; }
+  .phone { position: absolute; left: 0; top: 0; width: 540px; height: 960px; transform-origin: 0 0; overflow: hidden; border-radius: 22px; background: linear-gradient(#bfe3f2, #e8f4f8); box-shadow: 0 0 0 1px var(--line), 0 18px 50px rgba(0,0,0,.6); }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+  .hud { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: rgba(30,25,19,.97); }
+  .top { top: 0; height: 64px; border-bottom: 1px solid var(--line); }
+  .phase { top: 64px; height: 26px; justify-content: center; font-size: 12px; font-weight: 700; letter-spacing: .05em; color: var(--gold);
+           background: #2a1f12; border-bottom: 1px solid var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .phase.slow { color: #bfe0ff; background: #14233a; border-bottom-color: #5d8fbf; }
+  .bottom { bottom: 0; height: 84px; gap: 6px; padding: 0 8px; border-top: 1px solid var(--line); }
+  .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .tt small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .tt b { font-family: var(--display); font-size: 24px; letter-spacing: .04em; }
+  .tt span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { padding: 6px 11px; border-radius: 999px; border: 1px solid #4a3d2c; background: var(--btn); font-weight: 700; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .card { flex: 1 1 0; min-width: 0; height: 64px; border-radius: 12px; border: 1.5px solid #4a3d2c; background: var(--btn); color: var(--ink); font: 700 12px var(--body);
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; padding: 0 2px; position: relative; }
+  .card i { font: 700 20px var(--display); font-style: normal; color: #f6e7bf; line-height: 1; }
+  .card .nm { font-size: 11px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .hp { width: 80%; height: 5px; border-radius: 3px; background: rgba(0,0,0,.5); overflow: hidden; }
+  .card .hp u { display: block; height: 100%; background: #6fd17a; text-decoration: none; }
+  .card.sel { border-color: #f6d77a; background: #3a2e18; box-shadow: 0 0 0 2px rgba(246,215,122,.35); }
+  .card.dead { opacity: .35; }
+  .card.act::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #f6d77a; }
+  #skill { flex: 1.35 1 0; min-width: 0; height: 64px; border-radius: 12px; border: 1px solid var(--gold); background: var(--gold); color: #1e1408; font: 700 13px var(--body);
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; line-height: 1.15; text-align: center; padding: 0 4px; }
+  #skill small { font: 500 11px var(--body); }
+  #skill:disabled { opacity: .4; cursor: not-allowed; }
+  .rail { position: absolute; left: 8px; top: 118px; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
+  .rb { --hp: 100; --c: #6fd17a; width: 64px; height: 64px; border-radius: 50%; border: 0; padding: 4px; cursor: pointer; background: conic-gradient(var(--c) calc(var(--hp) * 1%), rgba(0,0,0,.6) 0); position: relative; }
+  .rb .in { display: block; width: 100%; height: 100%; border-radius: 50%; background: #1e1913; border: 1.5px solid #4a3d2c; overflow: hidden; }
+  .rb canvas { width: 100%; height: 100%; display: block; }
+  .rb.sel { box-shadow: 0 0 0 3px #f6d77a, 0 0 14px rgba(246,215,122,.6); }
+  .rb.dead { opacity: .35; }
+  .rb.act::after { content: ''; position: absolute; top: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%; background: #f6d77a; border: 1.5px solid #1e1913; }
+  .boostbar { position: absolute; left: 80px; right: 10px; bottom: 14px; display: flex; gap: 8px; z-index: 3; }
+  .bb { flex: 1 1 0; min-width: 0; height: 68px; border-radius: 12px; border: 1px solid var(--gold); background: rgba(42,35,26,.97); color: var(--ink); font: 700 14px var(--body); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; padding: 0 4px; text-align: center; line-height: 1.15; }
+  .bb small { font: 500 11px var(--body); color: var(--muted); }
+  .bb em { font: 700 11px var(--body); font-style: normal; color: #f6d77a; }
+  .bb:disabled { opacity: .45; cursor: not-allowed; }
+  .bb.tgt { background: var(--gold); color: #1e1408; } .bb.tgt small, .bb.tgt em { color: #3a2a12; }
+  .nob { flex: 1; text-align: center; padding: 22px 8px; border-radius: 12px; background: rgba(42,35,26,.95); color: var(--muted); font-size: 13px; }
+  #mini { position: absolute; right: 10px; top: 160px; width: 64px; height: auto; border: 1px solid #4a3d2c; border-radius: 6px; background: #1e1913; z-index: 3; opacity: .94; cursor: pointer; touch-action: none; }
+  .maps { display: grid; gap: 6px; margin: 4px 0 8px; }
+  .maps button { text-align: left; padding: 8px 12px; border-radius: 10px; border: 1px solid #4a3d2c; background: var(--btn); color: var(--ink); font: 700 14px var(--body); cursor: pointer; height: auto !important; }
+  .maps button small { display: block; font: 500 12px var(--body); color: var(--muted); }
+  .maps button.on { border-color: var(--gold); background: #3a2e18; }
+  .zchip { position: absolute; right: 10px; top: 118px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid #4a3d2c; background: rgba(30,25,19,.95); color: #f6d77a; font: 700 13px var(--body); cursor: pointer; z-index: 3; }
+  button:focus-visible { outline: 3px solid #f6d77a; outline-offset: 2px; }
+  .ibtn { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #4a3d2c; background: var(--btn); color: var(--ink); font-size: 18px; cursor: pointer; }
+  .toast { z-index: 7; position: absolute; left: 50%; top: 104px; transform: translateX(-50%); max-width: calc(100% - 40px); width: max-content; padding: 9px 14px; border-radius: 12px;
+           background: rgba(15,12,8,.94); border: 1px solid var(--gold); color: #f6d77a; font-size: 14px; font-weight: 700; text-align: center; pointer-events: none; }
+  .over { z-index: 6; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,8,5,.72); }
+  .box { width: 380px; padding: 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--gold); text-align: center; display: flex; flex-direction: column; gap: 10px; }
+  .box h2 { font-family: var(--display); font-size: 44px; margin: 0; color: #f6e7bf; }
+  .box p { margin: 0; color: var(--muted); line-height: 1.4; }
+  .box button, .help .go { height: 52px; border-radius: 12px; border: 0; background: var(--gold); color: #1e1408; font: 700 15px var(--body); cursor: pointer; }
+  .help { z-index: 6; position: absolute; top: 96px; left: 12px; right: 12px; padding: 14px 16px; border-radius: 12px; background: rgba(30,25,19,.98); border: 1px solid var(--gold); font-size: 14px; line-height: 1.42; }
+  .help h3 { margin: 0 0 6px; font-family: var(--display); font-size: 26px; color: #f6e7bf; }
+  .help p { margin: 0 0 6px; }
+  .help b { color: #f6d77a; }
+  .help .go { width: 100%; margin-top: 8px; }
+  .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; }
+  .slots button { height: 48px; border-radius: 10px; border: 1px solid #4a3d2c; background: var(--btn); color: var(--ink); font: 700 13px var(--body); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
+  .slots button small { font: 500 11px var(--body); color: var(--muted); }
+
+  .rail { top: 104px; }
+  .rb .in { background: #1e1a24; }
+  .help p { margin: 0 0 8px; }
+  .styles { position: absolute; left: 8px; right: 8px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; z-index: 4; }
+  .styles button { height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid #4a3d2c; background: rgba(30,25,19,.92); color: #efe6d2; font: 700 13px var(--body); cursor: pointer; }
+  .styles button.on { background: #d9a441; color: #1e1408; border-color: #d9a441; }
+</style>
+<div class="stage"><div class="fit" id="fit"><div class="phone" id="board">
+  <canvas id="cv" width="540" height="960" aria-label="3D сцена: переправа"></canvas>
+  <div class="hud top">
+    <button class="ibtn" id="reset" type="button" aria-label="Вернуть камеру" title="Вернуть камеру">⟲</button>
+    <div class="tt"><small>Тест стиля · 3D</small><b>Переправа</b><span id="sub">Мультяшные воины на гранёном рельефе</span></div>
+  </div>
+  <div class="hud phase" id="phase"></div>
+  <div class="rail" id="rail">
+    <button class="rb" id="rb0" type="button" aria-label="Марк"><span class="in"><canvas id="rbc0" width="64" height="64"></canvas></span></button>
+    <button class="rb" id="rb1" type="button" aria-label="Тит"><span class="in"><canvas id="rbc1" width="64" height="64"></canvas></span></button>
+    <button class="rb" id="rb2" type="button" aria-label="Гай"><span class="in"><canvas id="rbc2" width="64" height="64"></canvas></span></button>
+    <button class="rb" id="rb3" type="button" aria-label="Луций"><span class="in"><canvas id="rbc3" width="64" height="64"></canvas></span></button>
+  </div>
+  <div class="styles" id="styles"></div>
+  <div class="toast" id="toast" hidden></div>
+  <div class="help" id="help">
+    <h3>Тест стиля</h3>
+    <p>Это не бой, а проверка вида: <b>трёхмерный гранёный рельеф и мультяшные воины</b>. Карта больше экрана, воины мельче.</p>
+    <p><b>Коснитесь генерала слева или отряда:</b> непроходимая земля потемнеет, светлый контур покажет, куда можно дойти, сплошная линия — куда за 5 секунд, пунктир — за 10. На компьютере путь рисуется под курсором. Коснитесь места — отряд пойдёт.</p>
+    <p><b>Перетаскивание</b> двигает камеру, <b>колесо или щипок</b> — масштаб, ⟲ — вернуть вид.</p>
+    <button type="button" class="go" id="helpOk">Смотреть</button>
+  </div>
+</div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+'use strict';
+const K = 96;                         // K: how many pixels one unit of height lifts a point
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+const sst = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const gau = (x, y, cx, cy, rx, ry, a) => a * Math.exp(-(((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2) / 2);
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const rgb = c => 'rgb(' + c.map(v => Math.max(0, Math.min(255, Math.round(v)))).join(',') + ')';
+const LIGHT = (() => { const l = [-0.62, -0.32, 0.6], n = Math.hypot(...l); return l.map(v => v / n); })();
+
+
+const WX = 480, WY = 720;
+const ell = (cx, cy, rx, ry, p) => (x, y) => { const nx = (x - cx) / rx, ny = (y - cy) / ry, n = 1 + 0.1 * Math.sin(x * 0.045 + y * 0.03) + 0.07 * Math.sin(x * 0.11 - y * 0.07); return Math.pow(Math.abs(nx), p) + Math.pow(Math.abs(ny), p) < n; };
+const E = (x, y, cx, cy, rx, ry, a) => gau(x, y, cx, cy, rx, ry, a);
+const spec = {
+  seed: 11, water: 0.02, mask: ell(240, 385, 210, 305, 3.4),
+  h: (x, y) => {
+    let v = 0.1 + E(x, y, 62, 320, 60, 150, 0.62) + E(x, y, 418, 330, 60, 150, 0.62) + sst(290, 200, y) * 0.75 + E(x, y, 158, 300, 34, 34, 0.7) + E(x, y, 322, 300, 34, 34, 0.7);
+    v -= E(x, y, 240, 500, 400, 24, 0.34) * (1 - E(x, y, 240, 500, 13, 60, 0.97)); v += E(x, y, 240, 500, 12, 22, 0.1);
+    return v;
+  }
+};
+// the height grid, sampled once
+const GS = 6, GW = Math.ceil(WX / GS), GH = Math.ceil(WY / GS), HW = GW + 1;
+const HGR = new Float32Array(HW * (GH + 1));
+for (let j = 0; j <= GH; j++) for (let i = 0; i <= GW; i++) { const x = i * GS, y = j * GS; HGR[j * HW + i] = spec.mask(x, y) ? spec.h(x, y) : -0.3; }
+function hAt(x, y) {
+  const fx = Math.max(0, Math.min(GW - 0.001, x / GS)), fy = Math.max(0, Math.min(GH - 0.001, y / GS)), i = fx | 0, j = fy | 0, tx = fx - i, ty = fy - j;
+  const a = HGR[j * HW + i], b = HGR[j * HW + i + 1], c = HGR[(j + 1) * HW + i], d = HGR[(j + 1) * HW + i + 1];
+  return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
+}
+const lift = (x, y) => Math.max(0, hAt(x, y)) * K;
+
+// ---------------------------------------------------------------- paths (slab corridors), buildings, camp
+const PATHS = [
+  [[240, 650], [240, 605], [240, 560], [240, 500], [240, 450], [240, 395], [240, 345], [240, 300], [240, 262], [240, 225]],
+  [[240, 450], [190, 432], [140, 392], [96, 352]],
+  [[240, 450], [300, 432], [350, 395], [394, 358]],
+  [[394, 358], [378, 322], [345, 280], [300, 245], [255, 225]]
+];
+const NODES = []; for (const line of PATHS) for (const [x, y] of line) if (!NODES.some(n => Math.hypot(n[0] - x, n[1] - y) < 6)) NODES.push([x, y]);
+const CAMP = { x: 240, y: 650, r: 88 }, TENTS = [[170, 654], [310, 654], [240, 666]];
+const BUILD = [{ t: 'tower', x: 84, y: 346, fx: 16, fh: 66 }, { t: 'granary', x: 404, y: 352, fx: 22, fh: 40 }, { t: 'hall', x: 240, y: 214, fx: 26, fh: 62 }];
+const DECOR = [{ t: 'house', x: 300, y: 560 }, { t: 'house', x: 175, y: 275 }, { t: 'house', x: 120, y: 470 }];
+const OB = { x: 240, y: 300, hw: 46, hh: 10, open: false, cells: [] };
+function segDist(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / l2)); return Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t)); }
+
+// ---------------------------------------------------------------- navigation grid: plain, forest, road, steep (corridor only), ford (corridor only), blocked
+const NN = GW * GH, NAV = new Uint8Array(NN), MUL = new Float32Array(NN), COR = new Uint8Array(NN), CAMPM = new Uint8Array(NN), FOR = new Uint8Array(NN);
+const cellOf = (x, y) => Math.min(GH - 1, Math.max(0, y / GS | 0)) * GW + Math.min(GW - 1, Math.max(0, x / GS | 0));
+const cx_ = c => (c % GW + 0.5) * GS, cy_ = c => ((c / GW | 0) + 0.5) * GS;
+(function buildNav() {
+  const fn = (x, y) => Math.sin(x * 0.034 + 1.3) * Math.cos(y * 0.029) + Math.sin(x * 0.071 + y * 0.053) * 0.5;
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+    const c = j * GW + i, x = (i + 0.5) * GS, y = (j + 0.5) * GS;
+    let np = 1e9; for (const line of PATHS) for (let k = 1; k < line.length; k++) np = Math.min(np, segDist(x, y, line[k - 1][0], line[k - 1][1], line[k][0], line[k][1]));
+    COR[c] = np < 12 ? 1 : 0;
+    if (!spec.mask(x, y)) { NAV[c] = 0; continue; }
+    const h = spec.h(x, y), s = Math.hypot(spec.h(x + 4, y) - spec.h(x - 4, y), spec.h(x, y + 4) - spec.h(x, y - 4)) / 8 * K;
+    if (h < spec.water) { NAV[c] = COR[c] ? 4 : 0; MUL[c] = 2.2; }
+    else if (s > 2.0) NAV[c] = 0;
+    else if (s > 0.6) { NAV[c] = COR[c] ? 3 : 0; MUL[c] = 1.5; }
+    else { NAV[c] = 1; MUL[c] = COR[c] ? 0.8 : 1; }
+    if (NAV[c] === 1 && !COR[c] && h > 0.06 && h < 0.5 && fn(x, y) > 0.38 && BUILD.every(b => Math.hypot(b.x - x, b.y - y) > 48) && Math.hypot(x - CAMP.x, y - CAMP.y) > CAMP.r + 10) { NAV[c] = 2; MUL[c] = 1.7; FOR[c] = 1; }
+    if (Math.hypot(x - CAMP.x, y - CAMP.y) < CAMP.r) CAMPM[c] = 1;
+    if (Math.abs(x - OB.x) < OB.hw && Math.abs(y - OB.y) < OB.hh) OB.cells.push([c, NAV[c], MUL[c]]);
+  }
+  for (const [c] of OB.cells) NAV[c] = 0;
+})();
+const pass = (c, side) => NAV[c] !== 0 && !(side === 2 && CAMPM[c]);
+function nearestWalkable(x, y, side, R) {
+  let best = null, bd = 1e9;
+  for (let j = Math.max(0, (y - R) / GS | 0); j <= Math.min(GH - 1, (y + R) / GS | 0); j++) for (let i = Math.max(0, (x - R) / GS | 0); i <= Math.min(GW - 1, (x + R) / GS | 0); i++) {
+    const c = j * GW + i; if (!pass(c, side)) continue; const d = Math.hypot(cx_(c) - x, cy_(c) - y); if (d < bd && d <= R) { bd = d; best = [cx_(c), cy_(c)]; }
+  }
+  return best;
+}
+function los(x0, y0, x1, y1, side) { const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 3); for (let k = 1; k < n; k++) { const t = k / n; if (!pass(cellOf(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t), side)) return false; } return true; }
+// A* over the grid, then string-pulled into a few waypoints
+const GSC = new Float32Array(NN), STAMP = new Uint32Array(NN), PREV = new Int32Array(NN); let stampN = 0;
+const NB = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
+function findPath(x0, y0, x1, y1, side) {
+  let s = cellOf(x0, y0), t = cellOf(x1, y1);
+  if (!pass(s, side)) { const n = nearestWalkable(x0, y0, side, 40); if (!n) return null; s = cellOf(n[0], n[1]); }
+  if (!pass(t, side)) { const n = nearestWalkable(x1, y1, side, 40); if (!n) return null; t = cellOf(n[0], n[1]); x1 = n[0]; y1 = n[1]; }
+  if (s === t) return [[x1, y1]];
+  stampN++; const fA = [], iA = [];
+  const push = (f, i) => { let k = fA.length; fA.push(f); iA.push(i); while (k > 0) { const p = (k - 1) >> 1; if (fA[p] <= fA[k]) break; [fA[p], fA[k]] = [fA[k], fA[p]]; [iA[p], iA[k]] = [iA[k], iA[p]]; k = p; } };
+  const pop = () => { const top = iA[0], lf = fA.pop(), li = iA.pop(); if (fA.length) { fA[0] = lf; iA[0] = li; let k = 0; for (;;) { let l = 2 * k + 1, r = l + 1, m = k; if (l < fA.length && fA[l] < fA[m]) m = l; if (r < fA.length && fA[r] < fA[m]) m = r; if (m === k) break; [fA[m], fA[k]] = [fA[k], fA[m]]; [iA[m], iA[k]] = [iA[k], iA[m]]; k = m; } } return top; };
+  const tx = t % GW, ty = t / GW | 0, hh = c => { const dx = Math.abs(c % GW - tx), dy = Math.abs((c / GW | 0) - ty); return (dx + dy) + (1.414 - 2) * Math.min(dx, dy); };
+  STAMP[s] = stampN; GSC[s] = 0; PREV[s] = -1; push(hh(s), s); let found = false;
+  while (fA.length) {
+    const c = pop(); if (c === t) { found = true; break; }
+    const ci = c % GW, cj = c / GW | 0, g0 = GSC[c];
+    for (const [dx, dy, st] of NB) {
+      const ni = ci + dx, nj = cj + dy; if (ni < 0 || nj < 0 || ni >= GW || nj >= GH) continue; const n = nj * GW + ni; if (!pass(n, side)) continue;
+      if (dx && dy && (!pass(cj * GW + ni, side) || !pass(nj * GW + ci, side))) continue;
+      const ng = g0 + st * MUL[n]; if (STAMP[n] !== stampN || ng < GSC[n]) { STAMP[n] = stampN; GSC[n] = ng; PREV[n] = c; push(ng + hh(n), n); }
+    }
+  }
+  if (!found) return null;
+  const cells = []; for (let c = t; c !== -1 && c !== s; c = PREV[c]) cells.push(c); cells.reverse();
+  const pts = cells.map(c => [cx_(c), cy_(c)]); const out = []; let i = 0, cur = [x0, y0];
+  while (i < pts.length) { let j = pts.length - 1; while (j > i && !los(cur[0], cur[1], pts[j][0], pts[j][1], side)) j--; out.push(pts[j]); cur = pts[j]; i = j + 1; }
+  out[out.length - 1] = [x1, y1]; return out;
+}
+
+
+const INF = 0, ARC = 1, CAV = 2;
+const MULT = [[1, 1, 1.6], [1.6, 1, 0.6], [0.7, 1.9, 1]];              // archers beat infantry, infantry beats cavalry, cavalry beats archers
+const CLS = {
+  tiro:    { name: 'Новобранцы', letter: 'Н', kind: INF, n: 5, k: 0.07, speed: 32, skill: null, hint: 'без навыка, берутся даром' },
+  hastati: { name: 'Гастаты', letter: 'Г', kind: INF, n: 8, k: 0.10, speed: 32, skill: { name: 'Черепаха', dur: 8, cd: 24, text: 'стрелы ×0,35' }, hint: 'щиты и меч' },
+  velites: { name: 'Велиты', letter: 'В', kind: ARC, n: 6, k: 0.08, speed: 34, range: 180, skill: { name: 'Залп', dur: 4, cd: 18, text: 'урон ×2,5' }, hint: 'метатели, бьют издали' },
+  eques:   { name: 'Всадники', letter: 'К', kind: CAV, n: 5, k: 0.11, speed: 64, skill: { name: 'Галоп', dur: 5, cd: 20, text: 'скорость, лес, удар' }, hint: 'быстрые, удар с разгона' },
+  eng:     { name: 'Инженеры', letter: 'И', kind: INF, n: 4, k: 0.04, speed: 30, skill: { name: 'Спешка', dur: 8, cd: 25, text: 'работа ×3' }, hint: 'завалы, стены, ворота' },
+  e_inf:   { name: 'Защитники', letter: '', kind: INF, n: 5, k: 0.085, speed: 30 },
+  e_arc:   { name: 'Лучники', letter: '', kind: ARC, n: 4, k: 0.08, speed: 30, range: 130 },
+  e_tower: { name: 'Башня', letter: '', kind: ARC, n: 5, k: 0.07, speed: 0, range: 170 },
+  e_cav:   { name: 'Конница', letter: '', kind: CAV, n: 4, k: 0.11, speed: 64 }
+};
+const GEN = ['Марк', 'Тит', 'Гай', 'Луций'];
+const ORDER = ['tiro', 'hastati', 'velites', 'eques', 'eng'];
+let slots = ['hastati', 'velites', 'eques', 'eng'];
+
+const BAN = {
+  tiro: { col: '#8a8f98', trim: '#e8e0c8', emb: 'none', shape: 'square' }, hastati: { col: '#c0261b', trim: '#d9a441', emb: 'eagle', shape: 'vex' },
+  velites: { col: '#2f8f4e', trim: '#eef3d2', emb: 'wolf', shape: 'pennant' }, eques: { col: '#7b3fa0', trim: '#f2e8ff', emb: 'horse', shape: 'swallow' },
+  eng: { col: '#d98a1f', trim: '#2a1c10', emb: 'pick', shape: 'square' },
+  e_inf: { col: '#2f6fd6', trim: '#dfe8ff', emb: 'eagle', shape: 'vex' }, e_arc: { col: '#2f6fd6', trim: '#dfe8ff', emb: 'wolf', shape: 'pennant' }, e_tower: { col: '#2f6fd6', trim: '#dfe8ff', emb: 'none', shape: 'pennant' }, e_cav: { col: '#2f6fd6', trim: '#dfe8ff', emb: 'horse', shape: 'swallow' }
+};
+
+const STARTS = [[192, 622], [240, 606], [288, 622], [240, 634]];
+const ENEMIES = [
+  ['e_inf', 4, 240, 452, 'br'], ['e_arc', 3, 192, 436, 'br'], ['e_arc', 3, 298, 436, 'br', null], ['e_inf', 5, 96, 352, 'tw'], ['e_arc', 3, 140, 392, 'tw'],
+  ['e_inf', 5, 394, 358, 'gr'], ['e_inf', 5, 240, 345, 'ps'], ['e_inf', 6, 240, 262, 'ft'], ['e_inf', 6, 240, 224, 'ft']
+];
+
+function emblem(g, k, cx, cy, z, col) {
+  if (k === 'none') return;
+  g.fillStyle = col; g.strokeStyle = col; g.lineWidth = Math.max(1, z * 0.28); g.beginPath();
+  if (k === 'eagle') { g.moveTo(cx - z, cy - z * 0.1); g.quadraticCurveTo(cx - z * 0.45, cy - z * 0.95, cx, cy - z * 0.25); g.quadraticCurveTo(cx + z * 0.45, cy - z * 0.95, cx + z, cy - z * 0.1); g.lineTo(cx + z * 0.3, cy + z * 0.6); g.lineTo(cx - z * 0.3, cy + z * 0.6); g.closePath(); g.fill(); }
+  else if (k === 'wolf') { g.moveTo(cx - z * 0.8, cy - z * 0.8); g.lineTo(cx - z * 0.3, cy - z * 0.35); g.lineTo(cx + z * 0.3, cy - z * 0.35); g.lineTo(cx + z * 0.8, cy - z * 0.8); g.lineTo(cx + z * 0.7, cy + z * 0.1); g.lineTo(cx, cy + z * 0.75); g.lineTo(cx - z * 0.7, cy + z * 0.1); g.closePath(); g.fill(); }
+  else if (k === 'horse') { g.moveTo(cx - z * 0.7, cy + z * 0.8); g.lineTo(cx - z * 0.5, cy - z * 0.2); g.lineTo(cx - z * 0.1, cy - z * 0.9); g.lineTo(cx + z * 0.2, cy - z * 0.7); g.lineTo(cx + z * 0.9, cy + z * 0.1); g.lineTo(cx + z * 0.6, cy + z * 0.35); g.lineTo(cx + z * 0.1, cy + z * 0.1); g.lineTo(cx + z * 0.1, cy + z * 0.8); g.closePath(); g.fill(); }
+  else { g.moveTo(cx - z * 0.8, cy + z * 0.8); g.lineTo(cx + z * 0.5, cy - z * 0.5); g.stroke(); g.beginPath(); g.arc(cx + z * 0.1, cy - z * 0.1, z * 0.9, -2.5, -0.3); g.stroke(); }
+}
+// a squad's standard: the shape of the cloth, its colour and its emblem differ for every squad
+function cbanner(g, x, y, st, sc, wv) {
+  sc = sc || 1; wv = wv || 0; const top = y - 34 * sc, col = st.col, trim = st.trim;
+  g.strokeStyle = '#5a3d20'; g.lineWidth = Math.max(1.4, 1.8 * sc); g.beginPath(); g.moveTo(x, y); g.lineTo(x, top - 3 * sc); g.stroke();
+  g.fillStyle = '#d9a441'; g.beginPath(); g.arc(x, top - 4 * sc, 2.4 * sc, 0, 7); g.fill();
+  g.fillStyle = col; g.strokeStyle = trim; g.lineWidth = Math.max(1, 1.3 * sc);
+  let ex, ey; g.beginPath();
+  if (st.shape === 'vex') { g.fillStyle = '#5a3d20'; g.fillRect(x - 9 * sc, top, 18 * sc, 2 * sc); g.fillStyle = col; g.beginPath(); g.rect(x - 8 * sc, top + 2 * sc, 16 * sc, 17 * sc); ex = x; ey = top + 11 * sc; g.fill(); g.stroke(); g.fillStyle = trim; for (let i = 0; i < 4; i++) g.fillRect(x - 8 * sc + i * 4.4 * sc, top + 19 * sc, 2.4 * sc, 3.4 * sc); }
+  else if (st.shape === 'pennant') { g.moveTo(x, top); g.lineTo(x + 24 * sc, top + 5 * sc + wv); g.lineTo(x, top + 10 * sc); g.closePath(); g.fill(); g.stroke(); ex = x + 7 * sc; ey = top + 5 * sc; }
+  else if (st.shape === 'swallow') { g.moveTo(x, top); g.lineTo(x + 19 * sc, top + wv * 0.5); g.lineTo(x + 13 * sc, top + 8 * sc); g.lineTo(x + 19 * sc, top + 16 * sc + wv * 0.5); g.lineTo(x, top + 16 * sc); g.closePath(); g.fill(); g.stroke(); ex = x + 8 * sc; ey = top + 8 * sc; }
+  else { g.rect(x, top, 16 * sc, 15 * sc); g.fill(); g.stroke(); ex = x + 8 * sc; ey = top + 7.5 * sc; }
+  if (sc >= 0.8) emblem(g, st.emb, ex, ey, 4 * sc, trim);
+}
+// a general's portrait: face by person, helmet by squad, the squad's banner at the corner
+function portrait(g, i, cls) {
+  const st = BAN[cls] || BAN.hastati, skin = ['#d9a77c', '#e9c29a', '#c98e63', '#dcae82'][i % 4];
+  const bg = g.createLinearGradient(0, 0, 0, 64); bg.addColorStop(0, '#46371f'); bg.addColorStop(1, '#251b10'); g.fillStyle = bg; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = st.col; g.beginPath(); g.moveTo(2, 64); g.quadraticCurveTo(6, 46, 22, 44); g.lineTo(40, 44); g.quadraticCurveTo(56, 46, 60, 64); g.fill();
+  g.fillStyle = '#d9a441'; g.fillRect(27, 45, 10, 4);
+  g.fillStyle = skin; g.fillRect(28, 38, 8, 9); g.beginPath(); g.ellipse(32, 30, 11, 13, 0, 0, 7); g.fill();
+  g.fillStyle = '#2a1c10'; g.beginPath(); g.ellipse(27.5, 30, 1.7, 2.1, 0, 0, 7); g.ellipse(36.5, 30, 1.7, 2.1, 0, 0, 7); g.fill();
+  g.strokeStyle = '#3a2615'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(24, 26); g.lineTo(30, 25); g.moveTo(34, 25); g.lineTo(40, 26); g.stroke();
+  g.strokeStyle = 'rgba(80,45,25,.5)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(32, 30); g.lineTo(31, 34); g.lineTo(33, 34); g.stroke();
+  g.strokeStyle = '#8a3a2a'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(29, 38.5); g.quadraticCurveTo(32, 40, 35, 38.5); g.stroke();
+  if (i === 0) { g.fillStyle = '#b8b2a6'; g.beginPath(); g.moveTo(22, 34); g.quadraticCurveTo(32, 54, 42, 34); g.quadraticCurveTo(32, 42, 22, 34); g.fill(); }      // grey beard
+  if (i === 2) { g.strokeStyle = '#a14a3a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(24, 28); g.lineTo(29, 36); g.stroke(); }                              // scar
+  if (i === 3) { g.fillStyle = '#3a2615'; g.beginPath(); g.moveTo(26, 37); g.quadraticCurveTo(32, 34, 38, 37); g.quadraticCurveTo(32, 39, 26, 37); g.fill(); }  // moustache
+  if (cls === 'hastati') { g.fillStyle = '#b4bac2'; g.beginPath(); g.arc(32, 27, 13.5, Math.PI, 0); g.fill(); g.fillRect(18.5, 27, 3.5, 11); g.fillRect(42, 27, 3.5, 11); g.fillStyle = st.col; g.fillRect(29, 6, 6, 10); g.fillStyle = '#7d1d16'; g.fillRect(29, 6, 6, 3); }
+  else if (cls === 'velites') { g.fillStyle = '#6b4a2a'; g.beginPath(); g.arc(32, 26, 13.5, Math.PI * 0.95, Math.PI * 0.05); g.fill(); g.beginPath(); g.moveTo(20, 20); g.lineTo(17, 8); g.lineTo(27, 15); g.moveTo(44, 20); g.lineTo(47, 8); g.lineTo(37, 15); g.fill(); }
+  else if (cls === 'eques') { g.fillStyle = '#b4bac2'; g.beginPath(); g.arc(32, 27, 13.5, Math.PI, 0); g.fill(); g.fillStyle = st.col; g.beginPath(); g.moveTo(30, 14); g.quadraticCurveTo(44, 2, 56, 18); g.quadraticCurveTo(44, 10, 34, 16); g.fill(); }
+  else if (cls === 'eng') { g.fillStyle = '#8a5a2c'; g.beginPath(); g.arc(32, 26, 13.5, Math.PI, 0); g.fill(); g.fillRect(18, 25, 28, 3); }
+  else { g.fillStyle = '#b0904c'; g.beginPath(); g.arc(32, 25, 14, Math.PI, 0); g.fill(); g.fillRect(14, 24, 36, 3); }
+  cbanner(g, 52, 62, st, 0.6);
+}
+
+// ---------------------------------------------------------------- 3D look test of «Переправа»: low-poly terrain, cartoon soldiers, walkable overlay
+// Map coordinates stay in "px" (480 × 720) as in the 2D prototype; the 3D world is px × S on X/Z, height × HY on Y.
+const S = 0.1, HY = 7.5, WATER_Y = 0.02 * HY;
+const STYLES = {
+  badnorth: { name: 'Bad North', low: 0x9fbf7a, slope: 0x8aa86c, plateau: 0xb3cc8c, rock: 0xb4b2ac, rockDark: 0x8e8c88, sand: 0xe4dcc4, water: 0x9fc8d4, shallow: 0xd2e8ec, trees: [0x56795a, 0x668a68, 0x789c76], roof: 0x8a5a4a, sky: ['#f4f5f2', '#e9ecea'], hemi: [0xffffff, 0xa8a498, 0.7], sun: [0xffffff, 0.75], toon: false, fogNear: 115 },
+  northgard: { name: 'Northgard', low: 0x6f9a4a, slope: 0x587e3c, plateau: 0x86ad58, rock: 0x7d7f84, rockDark: 0x55565c, sand: 0xc8b07a, water: 0x2f6f96, shallow: 0x5f9ec0, trees: [0x2c5a34, 0x386a3c, 0x4a7e46], roof: 0x6b4a3a, sky: ['#9fb8c8', '#dfe6e6'], hemi: [0xd8e4f0, 0x5a4a3a, 0.6], sun: [0xfff0d8, 1.05], toon: false, territory: true },
+  morning: { name: 'Утро', low: 0x8dbf5a, slope: 0x6e9e48, plateau: 0xa9c76a, rock: 0x9a8f84, rockDark: 0x6b625c, sand: 0xd9c48e, water: 0x4fa7c9, shallow: 0x8fd0de, trees: [0x3f7a33, 0x4e8a3a, 0x62a046], roof: 0xb4563a, sky: ['#bfe3f2', '#e8f4f8'], hemi: [0xcfe6f5, 0x7a6a4f, 0.55], sun: [0xfff1d6, 1.0], toon: false },
+  pastel: { name: 'Пастель', low: 0xb5cf8e, slope: 0x9cba7c, plateau: 0xc8d9a2, rock: 0xb8b0a8, rockDark: 0x8f8a86, sand: 0xe6dcbc, water: 0x8cc4d8, shallow: 0xbfe3ea, trees: [0x6f9a6a, 0x80ab78, 0x93bc88], roof: 0xd09080, sky: ['#e6eef0', '#f6f4ee'], hemi: [0xf2f2ee, 0xa89c88, 0.8], sun: [0xffffff, 0.7], toon: false },
+  toon: { name: 'Сочный мульт', low: 0x74c947, slope: 0x52a83a, plateau: 0x9fdc5c, rock: 0xa89a8a, rockDark: 0x7a6e64, sand: 0xf2d27a, water: 0x2fb2e6, shallow: 0x7fe0f2, trees: [0x2f8f3a, 0x3fa846, 0x58c454], roof: 0xe0552e, sky: ['#7fd0f5', '#d6f2ff'], hemi: [0xdff4ff, 0x80704f, 0.7], sun: [0xffffff, 0.9], toon: true },
+  dusk: { name: 'Закат', low: 0xb2a24e, slope: 0x8f8a40, plateau: 0xc9b65e, rock: 0x9a7f6c, rockDark: 0x5e4a42, sand: 0xe0b87a, water: 0x4a7fa6, shallow: 0x86b2c8, trees: [0x3d5e2e, 0x4b6e34, 0x5f823c], roof: 0xa8452c, sky: ['#f0a86a', '#f8dcb0'], hemi: [0xffd2a0, 0x5a4434, 0.5], sun: [0xffb070, 1.15], toon: false },
+  south: { name: 'Средиземноморье', low: 0xc2b866, slope: 0xa79f58, plateau: 0xd4c87c, rock: 0xd2c4ac, rockDark: 0xa8977c, sand: 0xeedcae, water: 0x2e9bb8, shallow: 0x7ccfd8, trees: [0x56703a, 0x657f42, 0x77904c], roof: 0xc8643a, sky: ['#a8d8f0', '#f4f0e0'], hemi: [0xf4f0e0, 0x9a8460, 0.65], sun: [0xfff4dc, 1.1], toon: false }
+};
+const STYLE_ID = STYLES[location.hash.slice(1)] ? location.hash.slice(1) : 'morning', ST = STYLES[STYLE_ID];
+const PAL = { low: ST.low, slope: ST.slope, plateau: ST.plateau, rock: ST.rock, rockDark: ST.rockDark, sand: ST.sand, water: ST.water, shallow: ST.shallow, red: 0xc8281e, blue: 0x2f6fd6, gold: 0xf2b632, uiDark: 0x1e1a24, uiLight: 0xfff6e0, tree: 0x4e8a3a, earth: 0x8b6a45 };
+const W3 = 540, H3 = 960, VTOP = 90;
+const cam = { tx: 24, tz: 42, dist: 92, yaw: 22 * Math.PI / 180, tilt: 55 * Math.PI / 180 };
+let T = 0;
+const $ = id => document.getElementById(id);
+function fit() { const k = Math.max(0.3, Math.min((innerWidth - 32) / W3, (innerHeight - 32) / H3, 1.2)); $('board').style.transform = 'scale(' + k + ')'; $('fit').style.width = W3 * k + 'px'; $('fit').style.height = H3 * k + 'px'; }
+addEventListener('resize', fit); addEventListener('load', fit); fit();
+
+const renderer = new THREE.WebGLRenderer({ canvas: $('cv'), antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(W3, H3, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xe2f1f6, 120, 230);
+const camera = new THREE.PerspectiveCamera(30, W3 / H3, 1, 400);
+scene.add(new THREE.HemisphereLight(ST.hemi[0], ST.hemi[1], ST.hemi[2])); $('board').style.background = 'linear-gradient(' + ST.sky[0] + ',' + ST.sky[1] + ')'; scene.fog.color.set(ST.sky[1]); if (ST.fogNear) { scene.fog.near = ST.fogNear; scene.fog.far = 170; }
+const sun = new THREE.DirectionalLight(ST.sun[0], ST.sun[1]);
+{ const el = 50 * Math.PI / 180, az = 135 * Math.PI / 180, d = 80; sun.position.set(24 - Math.cos(az) * Math.cos(el) * d * -1 * -1, Math.sin(el) * d, 36 - Math.sin(az) * Math.cos(el) * d); }
+sun.position.set(24 - 40, 62, 36 - 40); sun.target.position.set(24, 0, 36); scene.add(sun.target);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 3;
+Object.assign(sun.shadow.camera, { left: -48, right: 48, top: 48, bottom: -48, near: 10, far: 180 }); scene.add(sun);
+const TOONG = (() => { const c = document.createElement('canvas'); c.width = 3; c.height = 1; const g = c.getContext('2d'); ['#7a7a7a', '#bdbdbd', '#ffffff'].forEach((col, i) => { g.fillStyle = col; g.fillRect(i, 0, 1, 1); }); const t = new THREE.CanvasTexture(c); t.minFilter = t.magFilter = THREE.NearestFilter; return t; })();
+const mat = (c, extra) => ST.toon ? new THREE.MeshToonMaterial(Object.assign({ color: c, gradientMap: TOONG }, extra || {})) : new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, extra || {}));
+const P3 = (x, y, dy) => new THREE.Vector3(x * S, Math.max(hAt(x, y), -0.3) * HY + (dy || 0), y * S);
+const groundY = (x, y) => Math.max(hAt(x, y), spec.water) * HY;
+
+// ---------------------------------------------------------------- terrain mesh: jittered grid, flat-shaded, coloured by slope; an earth "pie" under the edge
+const STEP = 12, TC = Math.ceil(480 / STEP), TR = Math.ceil(720 / STEP);
+const TV = [];
+(function () {
+  const r = rng(31);
+  for (let j = 0; j <= TR; j++) { TV.push([]); for (let i = 0; i <= TC; i++) {
+    let x = i * STEP, y = j * STEP; if (i > 0 && i < TC && j > 0 && j < TR) { x += (r() - 0.5) * STEP * 0.5; y += (r() - 0.5) * STEP * 0.5; }
+    const inside = spec.mask(x, y); TV[j].push({ x, y, inside, h: inside ? hAt(x, y) : 0 });
+  } }
+})();
+const terrainTris = [];
+for (let j = 0; j < TR; j++) for (let i = 0; i < TC; i++) {
+  const a = TV[j][i], b = TV[j][i + 1], c = TV[j + 1][i + 1], d = TV[j + 1][i];
+  for (const t of ((i + j) % 2 ? [[a, c, b], [a, d, c]] : [[a, d, b], [b, d, c]])) if (t.every(v => v.inside)) terrainTris.push(t);
+}
+let terrainMesh, waterMesh, overlayMesh, overlayTex, overlayCanvas;
+(function buildTerrain() {
+  const pos = [], col = [], uv = [], c3 = new THREE.Color(), r = rng(7);
+  const vY = v => Math.max(v.h, -0.3) * HY;
+  const lerp = (a, b, t) => c3.set(a).lerp(new THREE.Color(b), Math.max(0, Math.min(1, t)));
+  for (const t of terrainTris) {
+    const P = t.map(v => new THREE.Vector3(v.x * S, vY(v), v.y * S));
+    const n = new THREE.Vector3().subVectors(P[1], P[0]).cross(new THREE.Vector3().subVectors(P[2], P[0])).normalize(); if (n.y < 0) n.negate();
+    const slopeDeg = Math.acos(Math.min(1, n.y)) * 180 / Math.PI, avg = (t[0].h + t[1].h + t[2].h) / 3, cx = (t[0].x + t[1].x + t[2].x) / 3, cy = (t[0].y + t[1].y + t[2].y) / 3, cell = cellOf(cx, cy);
+    if (avg < spec.water) c3.set(0x7e8a6a);
+    else if (avg < spec.water + 0.05) c3.set(PAL.sand);
+    else if (COR[cell] && slopeDeg < 34) c3.set(PAL.sand);
+    else if (slopeDeg > 40) lerp(PAL.rock, PAL.rockDark, (slopeDeg - 40) / 30);
+    else if (slopeDeg > 20) lerp(PAL.slope, PAL.rock, (slopeDeg - 20) / 40);
+    else if (avg > 0.62) c3.set(PAL.plateau); else lerp(PAL.low, PAL.slope, avg * 0.6);
+    if (FOR[cell]) c3.lerp(new THREE.Color(0x5a8a3c), 0.35);
+    c3.offsetHSL(0, 0, (r() - 0.5) * 0.035);
+    for (const p of P) { pos.push(p.x, p.y, p.z); col.push(c3.r, c3.g, c3.b); }
+    for (const v of t) uv.push(v.x / 480, 1 - v.y / 720);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+  terrainMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); terrainMesh.receiveShadow = true; scene.add(terrainMesh);
+  // the earth pie: walls under every boundary edge, in strata
+  const edges = new Map(), key = (a, b) => a.x < b.x || (a.x === b.x && a.y < b.y) ? a.x + ',' + a.y + '|' + b.x + ',' + b.y : b.x + ',' + b.y + '|' + a.x + ',' + a.y;
+  for (const t of terrainTris) for (let k = 0; k < 3; k++) { const a = t[k], b = t[(k + 1) % 3], kk = key(a, b); edges.set(kk, edges.has(kk) ? null : [a, b]); }
+  const wp = [], wc = [], strata = [[0, 0.6, 0x6e9e48], [0.6, 1.8, 0x8b6a45], [1.8, 4.2, 0x6b625c]], cc = new THREE.Color();
+  for (const e of edges.values()) { if (!e) continue; const [a, b] = e, ya = vY(a), yb = vY(b);
+    for (const [d0, d1, cl] of strata) { const A0 = [a.x * S, ya - d0, a.y * S], B0 = [b.x * S, yb - d0, b.y * S], A1 = [a.x * S * 0.995 + 24 * S * 0.005 * 0, ya - d1, a.y * S], B1 = [b.x * S, yb - d1, b.y * S];
+      cc.set(cl).offsetHSL(0, 0, (r() - 0.5) * 0.05); for (const p of [A0, B0, B1, A0, B1, A1]) { wp.push(...p); wc.push(cc.r, cc.g, cc.b); } } }
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3)); wg.setAttribute('color', new THREE.Float32BufferAttribute(wc, 3)); wg.computeVertexNormals();
+  const walls = new THREE.Mesh(wg, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide })); walls.castShadow = true; scene.add(walls);
+  // a soft shadow under the island
+  const sc = document.createElement('canvas'); sc.width = sc.height = 128; const sg = sc.getContext('2d'), gr = sg.createRadialGradient(64, 64, 10, 64, 64, 64); gr.addColorStop(0, 'rgba(20,40,50,.45)'); gr.addColorStop(1, 'rgba(20,40,50,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(58, 74), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false })); sh.rotation.x = -Math.PI / 2; sh.position.set(24.5, -6, 39); scene.add(sh);
+  // water: the river triangles, flattened at the water level, with a foam rim
+  const qp = [], qc = []; const wcol = new THREE.Color(PAL.water), scol = new THREE.Color(PAL.shallow);
+  for (const t of terrainTris) { const avg = (t[0].h + t[1].h + t[2].h) / 3; if (avg >= spec.water + 0.035) continue; const cell = cellOf((t[0].x + t[1].x + t[2].x) / 3, (t[0].y + t[1].y + t[2].y) / 3);
+    const c = COR[cell] ? scol : wcol; for (const v of t) { qp.push(v.x * S, WATER_Y - 0.05, v.y * S); qc.push(c.r, c.g, c.b); } }
+  const qg = new THREE.BufferGeometry(); qg.setAttribute('position', new THREE.Float32BufferAttribute(qp, 3)); qg.setAttribute('color', new THREE.Float32BufferAttribute(qc, 3)); qg.computeVertexNormals();
+  waterMesh = new THREE.Mesh(qg, new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, transparent: true, opacity: 0.88, shininess: 24, specular: 0x2a4a5a })); waterMesh.receiveShadow = true; scene.add(waterMesh);
+  waterMesh.userData.base = qp.slice();
+  // the overlay: same triangles, a canvas texture drawn when a squad is selected
+  overlayCanvas = document.createElement('canvas'); overlayCanvas.width = GW * 4; overlayCanvas.height = GH * 4;
+  overlayTex = new THREE.CanvasTexture(overlayCanvas); overlayTex.magFilter = THREE.LinearFilter; overlayTex.minFilter = THREE.LinearFilter;
+  const op = []; for (let k = 0; k < pos.length; k += 3) op.push(pos[k], Math.max(pos[k + 1], WATER_Y) + 0.06, pos[k + 2]);
+  const og = new THREE.BufferGeometry(); og.setAttribute('position', new THREE.Float32BufferAttribute(op, 3)); og.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  overlayMesh = new THREE.Mesh(og, new THREE.MeshBasicMaterial({ map: overlayTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); overlayMesh.visible = false; overlayMesh.renderOrder = 2; scene.add(overlayMesh);
+})();
+
+// ---------------------------------------------------------------- props: trees, rocks, stepping stones (instanced), buildings, camp, barricade
+function instanced(geo, material, list, castShadow) { const m = new THREE.InstancedMesh(geo, material, list.length), o = new THREE.Object3D(); list.forEach((f, i) => { f(o); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.castShadow = castShadow !== false; m.receiveShadow = true; scene.add(m); return m; }
+(function props() {
+  const r = rng(77), trees = [];
+  for (let y = 30; y < 700; y += 12) for (let x = 20; x < 470; x += 12) { const jx = x + (r() - .5) * 10, jy = y + (r() - .5) * 10; if (FOR[cellOf(jx, jy)] && r() < 0.62) trees.push([jx, jy, 0.75 + r() * 0.55, r() * 6.28]); }
+  const coneG = new THREE.ConeGeometry(1, 1, 6), trunkG = new THREE.CylinderGeometry(0.12, 0.16, 0.5, 5);
+  instanced(trunkG, mat(0x6b4a2a), trees.map(([x, y, k]) => o => { o.position.copy(P3(x, y, 0.25 * k)); o.scale.set(k, k, k); o.rotation.set(0, 0, 0); }));
+  [[0.95, 1.4, 0.85, ST.trees[0]], [0.75, 1.15, 1.6, ST.trees[1]], [0.5, 0.9, 2.25, ST.trees[2]]].forEach(([rad, hgt, yy, cl]) =>
+    instanced(coneG, mat(cl), trees.map(([x, y, k, rot]) => o => { o.position.copy(P3(x, y, yy * k)); o.scale.set(rad * k, hgt * k, rad * k); o.rotation.set(0, rot, 0); })));
+  const rocks = []; for (let k = 0; k < 40; k++) { const x = 30 + r() * 420, y = 40 + r() * 640, c = cellOf(x, y); if (!spec.mask(x, y) || NAV[c] !== 1 || COR[c] || Math.hypot(x - CAMP.x, y - CAMP.y) < CAMP.r + 10) continue; rocks.push([x, y, 0.35 + r() * 0.6, r() * 6]); }
+  instanced(new THREE.IcosahedronGeometry(1, 0), mat(PAL.rock), rocks.map(([x, y, k, a]) => o => { o.position.copy(P3(x, y, k * 0.3)); o.scale.set(k, k * 0.7, k * 0.9); o.rotation.set(a, a * 2, 0); }));
+  // stepping stones on the paths: the flagstones of the 2D prototype, now 3D
+  const slabs = NODES.filter(([x, y]) => Math.hypot(x - CAMP.x, y - CAMP.y) > CAMP.r - 10);
+  instanced(new THREE.CylinderGeometry(0.85, 0.95, 0.22, 7), mat(0xc9c3b3), slabs.map(([x, y]) => o => { o.position.set(x * S, groundY(x, y) + 0.06, y * S); o.scale.set(1, 1, 1); o.rotation.set(0, x, 0); }), false);
+})();
+function addTo(parent, geo, color, x, y, z, rx, ry, rz, shadow) { const m = new THREE.Mesh(geo, typeof color === 'number' ? mat(color) : color); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, rz || 0); m.castShadow = shadow !== false; m.receiveShadow = true; parent.add(m); return m; }
+const BOX = new THREE.BoxGeometry(1, 1, 1);
+function box(p, c, w, h, d, x, y, z, ry) { const m = addTo(p, BOX, c, x, y, z, 0, ry); m.scale.set(w, h, d); return m; }
+function gable(w, d, h) { const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(0, h); s.lineTo(w / 2, 0); s.lineTo(-w / 2, 0); const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false }); g.translate(0, 0, -d / 2); return g; }
+function place(group, x, y) { group.position.set(x * S, groundY(x, y), y * S); scene.add(group); return group; }
+function house(x, y, ry) { const g = new THREE.Group(); box(g, 0xe4d6b4, 2.6, 1.6, 2, 0, 0.8, 0); addTo(g, gable(3.0, 2.3, 1.3), ST.roof, 0, 1.6, 0); box(g, 0x6b4a2a, 0.5, 0.8, 0.05, 0, 0.4, 1.01); g.rotation.y = ry || 0; return place(g, x, y); }
+function tower(x, y) { const g = new THREE.Group(); addTo(g, new THREE.CylinderGeometry(1.1, 1.3, 5, 8), 0xbdb3a6, 0, 2.5, 0); addTo(g, new THREE.CylinderGeometry(1.45, 1.45, 0.5, 8), 0xa89e90, 0, 5.2, 0); addTo(g, new THREE.ConeGeometry(1.6, 1.8, 8), 0x8a6a46, 0, 6.35, 0); box(g, 0x4a3420, 0.6, 1, 0.1, 0, 0.5, 1.2); return place(g, x, y); }
+function granary(x, y) { const g = new THREE.Group(); box(g, 0xa07a4e, 3.4, 1.8, 2.4, 0, 0.9, 0); addTo(g, gable(3.9, 2.8, 1.5), 0xe0b85c, 0, 1.8, 0); for (const [bx, bz] of [[-2.1, 0.8], [-2.2, -0.2], [2.1, 0.9]]) addTo(g, new THREE.CylinderGeometry(0.35, 0.35, 0.7, 7), 0x7a5530, bx, 0.35, bz); return place(g, x, y); }
+function fort(x, y) {
+  const g = new THREE.Group(), stone = 0xbdb3a6;
+  box(g, stone, 7, 1.6, 0.6, 0, 0.8, -2.6); box(g, stone, 0.6, 1.6, 5.2, -3.2, 0.8, 0); box(g, stone, 0.6, 1.6, 5.2, 3.2, 0.8, 0); box(g, stone, 2.4, 1.6, 0.6, -2.3, 0.8, 2.6); box(g, stone, 2.4, 1.6, 0.6, 2.3, 0.8, 2.6);
+  for (let k = -3; k <= 3; k += 1) box(g, 0xa89e90, 0.45, 0.4, 0.7, k, 1.8, -2.6);
+  box(g, 0xe0d6c4, 3, 2.6, 2.4, 0, 1.3, -0.6); addTo(g, gable(3.4, 2.8, 1.4), ST.roof, 0, 2.6, -0.6);
+  for (const sx of [-3.2, 3.2]) { addTo(g, new THREE.CylinderGeometry(0.9, 1, 2.6, 8), stone, sx, 1.3, -2.6); addTo(g, new THREE.ConeGeometry(1.1, 1.2, 8), ST.roof, sx, 3.2, -2.6); }
+  return place(g, x, y);
+}
+function tent(x, y) { const g = new THREE.Group(); const c = addTo(g, new THREE.ConeGeometry(1.4, 1.8, 4), PAL.red, 0, 0.9, 0, 0, Math.PI / 4); box(g, 0xfff6e0, 0.18, 1.2, 0.05, 0, 0.6, 0.98, 0); return place(g, x, y); }
+function palisade() { const g = new THREE.Group(), st = new THREE.CylinderGeometry(0.12, 0.14, 1.1, 5), tip = new THREE.ConeGeometry(0.13, 0.3, 5);
+  for (let a = 0; a < 360; a += 7) { if (Math.abs(a - 270) < 15) continue; const rd = a * Math.PI / 180, x = CAMP.x + Math.cos(rd) * CAMP.r, y = CAMP.y + Math.sin(rd) * CAMP.r * 0.9; if (!spec.mask(x, y)) continue; const yy = groundY(x, y); addTo(g, st, 0xa07a4e, x * S, yy + 0.55, y * S); addTo(g, tip, 0x6b4a2a, x * S, yy + 1.25, y * S); }
+  scene.add(g); }
+let barricade;
+function buildBarricade() { const g = new THREE.Group(), log = new THREE.CylinderGeometry(0.18, 0.18, OB.hw * 2 * S, 6), st = new THREE.CylinderGeometry(0.1, 0.12, 1.2, 5);
+  addTo(g, log, 0x7a5530, 0, 0.5, 0, 0, 0, Math.PI / 2 + 0.18); addTo(g, log, 0x8a5f33, 0, 0.5, 0, 0, 0, Math.PI / 2 - 0.18);
+  for (let k = -OB.hw; k <= OB.hw; k += 7) addTo(g, st, 0x6b4a2a, k * S, 0.45, -0.25, 0.5, 0, 0);
+  barricade = place(g, OB.x, OB.y); }
+function capFlag(x, y, h, final) { const g = new THREE.Group(); addTo(g, new THREE.CylinderGeometry(0.06, 0.06, h, 5), 0x4a3420, 0, h / 2, 0);
+  const f = addTo(g, new THREE.ExtrudeGeometry((() => { const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(1.6, -0.35); s.lineTo(0, -0.8); s.lineTo(0, 0); return s; })(), { depth: 0.04, bevelEnabled: false }), PAL.blue, 0, h, 0);
+  const ring = addTo(g, new THREE.RingGeometry(2.6, 3.0, 28), new THREE.MeshBasicMaterial({ color: PAL.gold, transparent: true, opacity: 0.85, side: THREE.DoubleSide }), 0, 0.12, 0, -Math.PI / 2, 0, 0, false);
+  g.userData.flag = f; place(g, x, y); return g; }
+tower(BUILD[0].x, BUILD[0].y); granary(BUILD[1].x, BUILD[1].y); fort(BUILD[2].x, BUILD[2].y);
+for (const d of DECOR) house(d.x, d.y, d.x * 0.01);
+for (const [x, y] of TENTS) tent(x, y - 22);
+palisade(); buildBarricade();
+const FLAGS = [capFlag(BUILD[0].x + 22, BUILD[0].y + 18, 3.4), capFlag(BUILD[1].x + 26, BUILD[1].y + 16, 3.4), capFlag(BUILD[2].x, BUILD[2].y + 34, 4.4, true)];
+// a campfire
+{ const g = new THREE.Group(); for (let k = 0; k < 3; k++) addTo(g, new THREE.CylinderGeometry(0.08, 0.08, 0.9, 5), 0x6b4a2a, 0, 0.12, 0, Math.PI / 2, k * 1.05, 0); const fl = addTo(g, new THREE.ConeGeometry(0.3, 0.8, 5), new THREE.MeshBasicMaterial({ color: 0xffa83a }), 0, 0.45, 0, 0, 0, 0, false); g.userData.flame = fl; place(g, CAMP.x - 52, CAMP.y + 14); var FIRE = g; }
+
+// ---------------------------------------------------------------- cartoon soldiers: chunky toys, head:body 1:2, ~1 unit tall
+const SG = { leg: new THREE.BoxGeometry(0.12, 0.26, 0.13), body: new THREE.CylinderGeometry(0.17, 0.22, 0.36, 7), head: new THREE.IcosahedronGeometry(0.21, 1), helm: new THREE.SphereGeometry(0.23, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
+  crest: new THREE.BoxGeometry(0.06, 0.16, 0.3), scutum: new THREE.BoxGeometry(0.07, 0.46, 0.32), round: new THREE.CylinderGeometry(0.22, 0.22, 0.05, 9), boss: new THREE.SphereGeometry(0.06, 6, 4),
+  spear: new THREE.CylinderGeometry(0.018, 0.018, 1.7, 4), tip: new THREE.ConeGeometry(0.05, 0.14, 4), jav: new THREE.CylinderGeometry(0.016, 0.016, 1.0, 4), hood: new THREE.SphereGeometry(0.24, 7, 4, 0, Math.PI * 2, 0, Math.PI / 1.8), ear: new THREE.ConeGeometry(0.06, 0.14, 4),
+  bow: new THREE.TorusGeometry(0.26, 0.022, 4, 10, Math.PI), pick: new THREE.BoxGeometry(0.035, 0.035, 0.7), pickHead: new THREE.BoxGeometry(0.34, 0.05, 0.05), basket: new THREE.CylinderGeometry(0.13, 0.1, 0.22, 6),
+  horse: new THREE.BoxGeometry(0.34, 0.34, 0.78), neck: new THREE.BoxGeometry(0.2, 0.36, 0.2), hhead: new THREE.BoxGeometry(0.2, 0.18, 0.34), hleg: new THREE.BoxGeometry(0.1, 0.4, 0.1), sword: new THREE.BoxGeometry(0.04, 0.04, 0.4) };
+const M = {}; const mm = c => M[c] || (M[c] = mat(c));
+const SKIN = 0xf0c08f;
+function soldier(cls, side) {
+  const g = new THREE.Group(), team = side === 1 ? PAL.red : PAL.blue, legs = [];
+  const add = (geo, c, x, y, z, rx, ry, rz) => { const m = new THREE.Mesh(geo, mm(c)); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, rz || 0); m.castShadow = true; g.add(m); return m; };
+  const mounted = cls === 'eques' || cls === 'e_cav', base = mounted ? 0.62 : 0;
+  if (mounted) {
+    add(SG.horse, 0x8a5a34, 0, 0.5, 0); add(SG.neck, 0x8a5a34, 0, 0.75, -0.38, -0.4); add(SG.hhead, 0x7a4a28, 0, 0.92, -0.55); add(SG.boss, 0x2a1c10, 0, 0.7, 0.42);
+    for (const [lx, lz] of [[-0.12, -0.28], [0.12, -0.28], [-0.12, 0.28], [0.12, 0.28]]) legs.push(add(SG.hleg, 0x6a4022, lx, 0.2, lz));
+  } else for (const lx of [-0.08, 0.08]) legs.push(add(SG.leg, 0x5a3d20, lx, 0.13, 0));
+  add(SG.body, cls === 'eng' ? 0x9a7046 : team, 0, base + 0.43, 0);
+  add(SG.head, SKIN, 0, base + 0.78, 0);
+  if (cls === 'hastati' || cls === 'eques') { add(SG.helm, 0xc4ccd4, 0, base + 0.82, 0); add(SG.crest, side === 1 ? PAL.red : PAL.blue, 0, base + 1.06, 0.02); }
+  if (cls === 'hastati') { add(SG.scutum, team, -0.26, base + 0.45, 0.04); add(SG.boss, PAL.gold, -0.31, base + 0.46, 0.04); add(SG.sword, 0xdfe4ea, 0.24, base + 0.45, -0.12, 0.6); }
+  if (cls === 'velites') { add(SG.hood, 0x7a5a3a, 0, base + 0.82, 0); add(SG.ear, 0x7a5a3a, -0.13, base + 1.04, 0, 0, 0, 0.3); add(SG.ear, 0x7a5a3a, 0.13, base + 1.04, 0, 0, 0, -0.3); add(SG.jav, 0x6b4a2a, 0.24, base + 0.85, 0, -0.3); add(SG.tip, 0xdfe4ea, 0.24, base + 1.33, -0.15, -0.3); }
+  if (cls === 'eques') { add(SG.spear, 0x6b4a2a, 0.25, base + 0.6, -0.2, -1.1); }
+  if (cls === 'eng') { add(new THREE.SphereGeometry(0.22, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), 0x8a5a2c, 0, base + 0.84, 0); add(SG.pick, 0x6b4a2a, 0.2, base + 0.75, 0.08, 0.9); add(SG.pickHead, 0x8c939b, 0.2, base + 1.02, -0.18, 0.9); add(SG.basket, 0xb08a52, 0, base + 0.52, 0.22); }
+  if (cls === 'e_inf') { add(SG.helm, 0xa9b2bc, 0, base + 0.82, 0); add(SG.round, PAL.blue, -0.27, base + 0.46, 0.02, 0, 0, Math.PI / 2); add(SG.boss, PAL.uiLight, -0.31, base + 0.46, 0.02); add(SG.spear, 0x6b4a2a, 0.24, base + 0.85, 0); add(SG.tip, 0xdfe4ea, 0.24, base + 1.75, 0); }
+  if (cls === 'e_arc') { add(SG.hood, 0x34558f, 0, base + 0.8, 0); add(SG.bow, 0x6b4a2a, 0.26, base + 0.55, -0.05, 0, Math.PI / 2, Math.PI / 2); }
+  if (cls === 'e_cav') { add(SG.helm, 0xa9b2bc, 0, base + 0.82, 0); add(SG.round, PAL.blue, -0.27, base + 0.46, 0.02, 0, 0, Math.PI / 2); }
+  g.userData.legs = legs; return g;
+}
+// a squad's standard: a billboard flag whose SHAPE tells the squad apart (vexillum, pennant, swallowtail, square)
+function flagShape(kind) { const s = new THREE.Shape();
+  if (kind === 'vex') { s.moveTo(-0.5, 0); s.lineTo(0.5, 0); s.lineTo(0.5, -0.8); s.lineTo(0.3, -0.95); s.lineTo(0.1, -0.8); s.lineTo(-0.1, -0.95); s.lineTo(-0.3, -0.8); s.lineTo(-0.5, -0.95); s.lineTo(-0.5, 0); }
+  else if (kind === 'pennant') { s.moveTo(0, 0); s.lineTo(1.25, -0.28); s.lineTo(0, -0.56); s.lineTo(0, 0); }
+  else if (kind === 'swallow') { s.moveTo(0, 0); s.lineTo(1.0, 0); s.lineTo(0.68, -0.4); s.lineTo(1.0, -0.8); s.lineTo(0, -0.8); s.lineTo(0, 0); }
+  else { s.moveTo(0, 0); s.lineTo(0.8, 0); s.lineTo(0.8, -0.72); s.lineTo(0, -0.72); s.lineTo(0, 0); }
+  return new THREE.ShapeGeometry(s); }
+const FLAG_KIND = { vex: 'vex', pennant: 'pennant', swallow: 'swallow', square: 'square' };
+function standard(cls, side) {
+  const st = BAN[cls] || BAN.e_inf, g = new THREE.Group(), h = 2.2;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, h, 5), mm(0x5a3d20)); pole.position.y = h / 2; pole.castShadow = true; g.add(pole);
+  const knob = new THREE.Mesh(SG.boss, mm(PAL.gold)); knob.position.y = h + 0.05; g.add(knob);
+  const cloth = new THREE.Group(); cloth.position.y = h - 0.05; g.add(cloth);
+  const fm = new THREE.Mesh(flagShape(FLAG_KIND[st.shape] || 'square'), new THREE.MeshLambertMaterial({ color: new THREE.Color(st.col), side: THREE.DoubleSide })); cloth.add(fm);
+  // a light emblem dot so the class reads at 20 px
+  const em = new THREE.Mesh(new THREE.CircleGeometry(0.17, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(st.trim), side: THREE.DoubleSide })); em.position.set(st.shape === 'vex' ? 0 : 0.36, st.shape === 'pennant' ? -0.28 : -0.4, 0.01); cloth.add(em);
+  g.userData.cloth = cloth; return g;
+}
+
+// ---------------------------------------------------------------- squads
+const SQ = []; let SEL = null;
+const FORM = n => { const out = [], cols = n <= 4 ? 2 : 3; for (let i = 0; i < n; i++) { const c = i % cols, r = Math.floor(i / cols), inRow = Math.min(cols, n - r * cols); out.push([(c - (inRow - 1) / 2) * 0.62, (r - (Math.ceil(n / cols) - 1) / 2) * 0.62]); } return out; };
+function makeSquad(side, cls, n, x, y, name, idx) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const mounted = cls === 'eques' || cls === 'e_cav', men = [];
+  FORM(n).forEach(([fx, fz]) => { const s = soldier(cls, side); s.position.set(fx * (mounted ? 1.5 : 1), 0, fz * (mounted ? 1.6 : 1)); s.rotation.y = (Math.random() - 0.5) * 0.3; body.add(s); men.push(s); });
+  const std = standard(cls, side); std.position.set(mounted ? 1.3 : 0.95, 0, 0.3); root.add(std);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.75, 32), new THREE.MeshBasicMaterial({ color: PAL.gold, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.08; ring.visible = false; root.add(ring);
+  scene.add(root);
+  const q = { side, cls, n, x, y, root, body, men, std, ring, path: [], name, idx, speed: (CLS[cls] || CLS.e_inf).speed, face: side === 1 ? Math.PI : 0, walkT: 0 };
+  syncSquad(q, 0); SQ.push(q); return q;
+}
+function syncSquad(q, dt) {
+  q.root.position.set(q.x * S, groundY(q.x, q.y), q.y * S);
+  q.body.rotation.y += (q.face - q.body.rotation.y) * Math.min(1, dt * 8);
+  const moving = q.path.length > 0; q.walkT += dt * (moving ? 10 : 0);
+  q.men.forEach((m, i) => { const ph = q.walkT + i * 1.3; m.position.y = moving ? Math.abs(Math.sin(ph)) * 0.08 : 0; m.userData.legs.forEach((l, k) => { l.rotation.x = moving ? Math.sin(ph + k * Math.PI) * 0.6 : 0; }); });
+  q.std.userData.cloth.rotation.y = -cam.yaw + Math.sin(T * 2.2 + q.idx) * 0.15;
+}
+GEN.forEach((name, i) => makeSquad(1, slots[i], CLS[slots[i]].n, STARTS[i][0], STARTS[i][1] - 6, name, i));
+ENEMIES.forEach(([cls, n, x, y], i) => makeSquad(2, cls, n, x, y, '', 10 + i));
+
+// ---------------------------------------------------------------- where can I walk: dark over blocked ground, a light outline, 5 s and 10 s reach lines
+const RT = new Float32Array(GW * GH);
+function reachTimes(q) {
+  RT.fill(1e9); const s = cellOf(q.x, q.y), sp = q.speed; RT[s] = 0; const open = [s], inQ = new Uint8Array(GW * GH); inQ[s] = 1;
+  while (open.length) { let bi = 0; for (let k = 1; k < open.length; k++) if (RT[open[k]] < RT[open[bi]]) bi = k; const c = open[bi]; open[bi] = open[open.length - 1]; open.pop(); inQ[c] = 0;
+    const ci = c % GW, cj = c / GW | 0;
+    for (const [dx, dy, st] of NB) { const ni = ci + dx, nj = cj + dy; if (ni < 0 || nj < 0 || ni >= GW || nj >= GH) continue; const n = nj * GW + ni; if (!pass(n, 1)) continue; if (dx && dy && (!pass(cj * GW + ni, 1) || !pass(nj * GW + ci, 1))) continue;
+      const t = RT[c] + st * GS * MUL[n] / sp; if (t < RT[n]) { RT[n] = t; if (!inQ[n]) { inQ[n] = 1; open.push(n); } } } }
+}
+function paintOverlay(q) {
+  reachTimes(q); const g = overlayCanvas.getContext('2d'), C = 4; g.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  g.fillStyle = 'rgba(30,26,36,0.42)';
+  for (let c = 0; c < GW * GH; c++) if (RT[c] >= 1e8) g.fillRect((c % GW) * C, (c / GW | 0) * C, C, C);
+  const edge = (pred, style, w, dash) => { g.strokeStyle = style; g.lineWidth = w; g.setLineDash(dash || []); g.beginPath();
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const c = j * GW + i, a = pred(c);
+      if (i < GW - 1 && a !== pred(c + 1)) { g.moveTo((i + 1) * C, j * C); g.lineTo((i + 1) * C, (j + 1) * C); }
+      if (j < GH - 1 && a !== pred(c + GW)) { g.moveTo(i * C, (j + 1) * C); g.lineTo((i + 1) * C, (j + 1) * C); } }
+    g.stroke(); g.setLineDash([]); };
+  edge(c => RT[c] < 1e8, 'rgba(255,246,224,0.85)', 2.2);
+  edge(c => RT[c] <= 5, 'rgba(255,246,224,0.7)', 2.2);
+  edge(c => RT[c] <= 10, 'rgba(255,246,224,0.45)', 1.8, [5, 5]);
+  overlayTex.needsUpdate = true; overlayMesh.visible = true;
+}
+// path preview: a chain of team-coloured dots, a gold marker at the end
+const dotG = new THREE.CircleGeometry(0.16, 8), dotM = new THREE.MeshBasicMaterial({ color: PAL.red, depthWrite: false }), dots = new THREE.Group(); scene.add(dots);
+const marker = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.75, 20), new THREE.MeshBasicMaterial({ color: PAL.gold, side: THREE.DoubleSide, depthWrite: false })); marker.rotation.x = -Math.PI / 2; marker.visible = false; scene.add(marker);
+function showPath(from, pts) {
+  while (dots.children.length) dots.remove(dots.children[0]);
+  marker.visible = !!pts && pts.length > 0; if (!pts || !pts.length) return;
+  let px = from[0], py = from[1];
+  for (const [x, y] of pts) { const d = Math.hypot(x - px, y - py), n = Math.floor(d / 6); for (let k = 1; k <= n; k++) { const t = k / n, ax = px + (x - px) * t, ay = py + (y - py) * t, m = new THREE.Mesh(dotG, dotM); m.rotation.x = -Math.PI / 2; m.position.set(ax * S, groundY(ax, ay) + 0.12, ay * S); dots.add(m); } px = x; py = y; }
+  const [ex, ey] = pts[pts.length - 1]; marker.position.set(ex * S, groundY(ex, ey) + 0.14, ey * S);
+}
+const ZONES = [{ x: 240, y: 640, c: [200, 40, 30], name: 'Лагерь' }, { x: 240, y: 505, c: [210, 200, 170], name: 'Брод' }, { x: 100, y: 370, c: [47, 111, 214], name: 'Башня' },
+  { x: 395, y: 370, c: [47, 111, 214], name: 'Амбар' }, { x: 240, y: 340, c: [47, 111, 214], name: 'Перевал' }, { x: 240, y: 235, c: [47, 111, 214], name: 'Форт' }];
+const ZID = new Int8Array(GW * GH).fill(-1);
+for (let c = 0; c < GW * GH; c++) { if (!spec.mask(cx_(c), cy_(c))) continue; let b = -1, bd = 1e9; ZONES.forEach((z, i) => { const d = Math.hypot(cx_(c) - z.x, (cy_(c) - z.y) * 1.15); if (d < bd) { bd = d; b = i; } }); ZID[c] = b; }
+function paintTerritory() {
+  const g = overlayCanvas.getContext('2d'), C = 4; g.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  for (let c = 0; c < GW * GH; c++) { const z = ZID[c]; if (z < 0) continue; const [r, gg, b] = ZONES[z].c; g.fillStyle = 'rgba(' + r + ',' + gg + ',' + b + ',0.13)'; g.fillRect((c % GW) * C, (c / GW | 0) * C, C, C); }
+  g.lineCap = 'round';
+  for (const [w, col, dash] of [[5, 'rgba(20,24,30,0.35)', []], [2.6, null, [7, 5]]]) {
+    g.lineWidth = w; g.setLineDash(dash);
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const c = j * GW + i, a = ZID[c]; if (a < 0) continue;
+      for (const [n, x1, y1, x2, y2] of [[i < GW - 1 ? c + 1 : -1, (i + 1) * C, j * C, (i + 1) * C, (j + 1) * C], [j < GH - 1 ? c + GW : -1, i * C, (j + 1) * C, (i + 1) * C, (j + 1) * C]]) {
+        if (n < 0 || ZID[n] < 0 || ZID[n] === a) continue; const [r, gg, b] = ZONES[a].c;
+        g.strokeStyle = col || 'rgba(' + Math.min(255, r + 60) + ',' + Math.min(255, gg + 60) + ',' + Math.min(255, b + 60) + ',0.95)'; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); } } }
+  g.setLineDash([]); overlayTex.needsUpdate = true; overlayMesh.visible = true;
+}
+function select(q) {
+  if (SEL) SEL.ring.visible = false;
+  SEL = q === SEL ? null : q; overlayMesh.visible = false; showPath(null, null);
+  if (SEL) { SEL.ring.visible = true; paintOverlay(SEL); } else if (ST.territory) paintTerritory();
+  rail(); hint();
+}
+
+// ---------------------------------------------------------------- camera: perspective 30°, tilt 55°, yaw 22°; drag to pan, wheel / pinch to zoom
+function clampCam() { cam.tx = Math.max(6, Math.min(42, cam.tx)); cam.tz = Math.max(8, Math.min(48, cam.tz)); cam.dist = Math.max(40, Math.min(140, cam.dist)); }
+function placeCamera() { const h = Math.sin(cam.tilt) * cam.dist, r = Math.cos(cam.tilt) * cam.dist; camera.position.set(cam.tx + Math.sin(cam.yaw) * r, h, cam.tz + Math.cos(cam.yaw) * r); camera.lookAt(cam.tx, 0, cam.tz); camera.setViewOffset(W3, H3, 0, -VTOP / 2, W3, H3); }
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const scr = e => { const r = $('cv').getBoundingClientRect(); return [(e.clientX - r.left) * W3 / r.width, (e.clientY - r.top) * H3 / r.height]; };
+function groundHit(sx, sy) { ndc.set(sx / W3 * 2 - 1, -(sy / H3) * 2 + 1); ray.setFromCamera(ndc, camera); const h = ray.intersectObjects([terrainMesh, waterMesh])[0]; return h ? [h.point.x / S, h.point.z / S] : null; }
+function squadAt(sx, sy, side) { let best = null, bd = 36; const v = new THREE.Vector3(); for (const q of SQ) { if (side && q.side !== side) continue; v.set(q.x * S, groundY(q.x, q.y) + 0.6, q.y * S).project(camera); const px = (v.x + 1) / 2 * W3, py = (1 - v.y) / 2 * H3, d = Math.hypot(px - sx, py - sy); if (d < bd) { bd = d; best = q; } } return best; }
+function tap(sx, sy) {
+  const mine = squadAt(sx, sy, 1); if (mine) { select(mine); return; }
+  if (!SEL) { const foe = squadAt(sx, sy, 2); say(foe ? 'Это вражеский отряд. Сначала выберите своего генерала слева' : 'Коснитесь своего отряда или знамени слева'); return; }
+  const g = groundHit(sx, sy); if (!g) return;
+  const w = nearestWalkable(g[0], g[1], 1, 30); if (!w || RT[cellOf(w[0], w[1])] >= 1e8) { say(hAt(g[0], g[1]) < spec.water ? 'Реку переходят по броду' : 'Сюда не пройти'); return; }
+  const p = findPath(SEL.x, SEL.y, w[0], w[1], 1); if (!p) { say('Путь закрыт'); return; }
+  SEL.path = p; showPath([SEL.x, SEL.y], p); const q = SEL; select(SEL); q.preview = true;
+}
+const ptrs = new Map(); let gest = null, hoverT = 0;
+$('cv').addEventListener('pointerdown', e => { if (!$('help').hidden) return; const p = scr(e); ptrs.set(e.pointerId, { x: p[0], y: p[1], sx: p[0], sy: p[1] }); try { $('cv').setPointerCapture(e.pointerId); } catch (_) {}
+  if (ptrs.size === 1) gest = { moved: false }; else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; gest = { moved: true, pinch: true, d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: cam.dist }; } });
+$('cv').addEventListener('pointermove', e => {
+  const p = scr(e), q = ptrs.get(e.pointerId);
+  if (!q) { if (SEL && performance.now() - hoverT > 60) { hoverT = performance.now(); const g = groundHit(p[0], p[1]); if (g) { const w = nearestWalkable(g[0], g[1], 1, 30); showPath([SEL.x, SEL.y], w && RT[cellOf(w[0], w[1])] < 1e8 ? findPath(SEL.x, SEL.y, w[0], w[1], 1) : null); } } return; }
+  const dx = p[0] - q.x, dy = p[1] - q.y; q.x = p[0]; q.y = p[1]; if (!gest) return;
+  if (gest.pinch && ptrs.size >= 2) { const [a, b] = [...ptrs.values()]; cam.dist = gest.z0 * gest.d0 / (Math.hypot(a.x - b.x, a.y - b.y) || 1); clampCam(); return; }
+  if (!gest.moved && Math.hypot(q.x - q.sx, q.y - q.sy) > 9) gest.moved = true;
+  if (gest.moved) { const k = cam.dist / 620, cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw); cam.tx -= (dx * cy + dy * sy / Math.sin(cam.tilt)) * k; cam.tz -= (-dx * sy + dy * cy / Math.sin(cam.tilt)) * k; clampCam(); }
+});
+const endP = e => { const q = ptrs.get(e.pointerId); if (!q) return; ptrs.delete(e.pointerId); if (gest && !gest.moved && !gest.pinch && ptrs.size === 0 && e.type === 'pointerup') tap(q.x, q.y); if (!ptrs.size) gest = null; };
+$('cv').addEventListener('pointerup', endP); $('cv').addEventListener('pointercancel', endP);
+$('cv').addEventListener('wheel', e => { e.preventDefault(); cam.dist *= Math.pow(1.0012, e.deltaY); clampCam(); }, { passive: false });
+
+// ---------------------------------------------------------------- the interface: generals' rail (faces + banners), hints
+function rail() { SQ.filter(q => q.side === 1).forEach((q, i) => { const b = $('rb' + i); b.className = 'rb' + (SEL === q ? ' sel' : ''); }); }
+function hint() { const ph = $('phase'); ph.className = 'hud phase' + (SEL ? ' slow' : ''); ph.textContent = SEL ? '⏳ ' + SEL.name + ' · ' + CLS[SEL.cls].name + ' · коснитесь, куда идти' : 'Тест стиля · выберите генерала'; }
+let toastT = 0; function say(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 2400); }
+SQ.filter(q => q.side === 1).forEach((q, i) => { const g = $('rbc' + i).getContext('2d'); portrait(g, i, q.cls); $('rb' + i).addEventListener('click', () => { select(q); if (SEL) { cam.tx = q.x * S; cam.tz = q.y * S - 6; clampCam(); } }); });
+$('helpOk').addEventListener('click', () => { $('help').hidden = true; });
+$('styles').innerHTML = Object.entries(STYLES).map(([id, st]) => '<button type="button" data-s="' + id + '" class="' + (id === STYLE_ID ? 'on' : '') + '">' + st.name + '</button>').join('');
+for (const b of $('styles').children) b.addEventListener('click', () => { location.hash = b.dataset.s; location.reload(); });
+if (location.hash) $('help').hidden = true;
+if (ST.territory) paintTerritory();
+$('reset').addEventListener('click', () => { cam.dist = 92; cam.tx = 24; cam.tz = 42; });
+hint();
+
+// ---------------------------------------------------------------- loop
+let lastNow = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now; T += dt;
+  for (const q of SQ) {
+    if (q.path.length) { const [tx, ty] = q.path[0], dx = tx - q.x, dy = ty - q.y, d = Math.hypot(dx, dy), sp = q.speed * Math.max(0.45, Math.min(1.25, 1 / MUL[cellOf(q.x, q.y)])), mv = Math.min(d, sp * dt);
+      if (d > 0.01) { q.x += dx / d * mv; q.y += dy / d * mv; q.face = Math.atan2(-dx, -dy); } if (d - mv < 1.5) q.path.shift(); if (!q.path.length && q.preview) { q.preview = false; showPath(null, null); } }
+    syncSquad(q, dt);
+  }
+  // water shimmer and banners
+  const wp = waterMesh.geometry.attributes.position, base = waterMesh.userData.base; for (let k = 0; k < wp.count; k++) wp.setY(k, base[k * 3 + 1] + Math.sin(T * 1.6 + base[k * 3] * 0.9 + base[k * 3 + 2] * 0.7) * 0.05); wp.needsUpdate = true;
+  for (const f of FLAGS) f.userData.flag.rotation.y = Math.sin(T * 2 + f.position.x) * 0.25;
+  FIRE.userData.flame.scale.set(1, 0.85 + Math.sin(T * 13) * 0.15, 1);
+  if (SEL) SEL.ring.material.opacity = 0.7 + Math.sin(T * 5) * 0.25;
+  placeCamera(); renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__3d = { SQ, select, tap, cam, groundHit, squadAt, scene, camera, renderer };
+
+</script>

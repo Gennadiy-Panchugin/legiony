@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<!-- PROTOTYPE - NOT FOR PRODUCTION -->
+<!-- Question: Does flow-line combat with unit-type counters produce "I outsmarted the enemy" decisions, or just "send the obvious counter"? -->
+<!-- Date: 2026-10-01 -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Легионы — прототип потоков</title>
+<style>
+  body { margin: 0; background: #1b1d22; color: #ddd; font-family: sans-serif;
+         display: flex; flex-direction: column; align-items: center; }
+  canvas { background: #3a4a33; margin-top: 8px; cursor: crosshair; max-width: 100vw; }
+  #help { font-size: 13px; opacity: .85; margin: 8px; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="help">
+  <b>Мышь:</b> зажмите ЛКМ на своём (синем) здании и протяните к <b>соседнему по дороге</b> зданию — по линии потечёт поток.
+  Линия к своему зданию — перегон подкреплений. <b>Клик по своему зданию</b> — выбрать/перестроить тип (пустырь — бесплатно, перестройка — 10 воинов). Клик по линии — снять. ПКМ по зданию — снять все его линии. Максимум 2 линии.<br>
+  <b>Контры:</b> Казарма → пехота, бьёт конницу · Конюшня → конница, бьёт лучников · Стрельбище → лучники, бьют пехоту.
+  Реку можно перейти только через <b>мост</b> в центре. <b>★ Столица</b> под щитом, пока у владельца есть другие здания. Победа — захват вражеской столицы.
+</div>
+<canvas id="c" width="960" height="560"></canvas>
+<script>
+// PROTOTYPE - NOT FOR PRODUCTION
+// Question: Does flow-line combat with unit-type counters produce "I outsmarted the enemy" decisions, or just "send the obvious counter"?
+// Date: 2026-10-01
+
+const W = 960, H = 560;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+
+// ---- tunables (hardcoded on purpose) ----
+const INF = 0, ARC = 1, CAV = 2, EMPTY = -1;
+const REBUILD_COST = 10;           // garrison spent to change an existing building's type
+const COUNTER_OF = { [CAV]: INF, [ARC]: CAV, [INF]: ARC };  // type -> the type that beats it
+const TYPE_KEY = ['П', 'Л', 'К'];
+const SPEED = [30, 24, 48];
+const ADV = 1.8, DIS = 0.55;       // counter multipliers
+const UNIT_HP = 8, UNIT_DPS = 8, MELEE = 9;
+const FLOW_RATE = 3;               // units/sec per building, split across its lines
+const GROW = 1, CAP = 40, HQ_CAP = 60, B_R = 24, HQ_R = 30, MAX_LINES = 2;
+const AI_SMART = 0.8;              // 1 = always best-scored target, lower = more random
+const AI_TICK = 1.5;
+const COLORS = { 0: '#8a8a8a', 1: '#3b82f6', 2: '#ef4444' };
+
+// [x, y, owner, type, garrison, isHQ] — point-symmetric map
+const NODES = [
+  [70, 280, 1, INF, 30, true],    // 0 player HQ
+  [190, 140, 1, ARC, 20, false],  // 1
+  [890, 280, 2, INF, 30, true],   // 2 enemy HQ
+  [770, 420, 2, ARC, 20, false],  // 3
+  [340, 100, 0, EMPTY, 12, false],  // 4  — neutral plots are empty until captured
+  [620, 460, 0, EMPTY, 12, false],  // 5
+  [340, 400, 0, EMPTY, 12, false],  // 6
+  [620, 160, 0, EMPTY, 12, false],  // 7
+  [480, 280, 0, EMPTY, 18, false],  // 8 center (bridge)
+  [190, 430, 0, EMPTY, 10, false],  // 9
+  [770, 130, 0, EMPTY, 10, false]   // 10
+];
+// every nearest-neighbour pair, no crossings; the river can only be crossed via node 8 (bridge)
+const ROADS = [[0,1],[0,9],[1,9],[1,4],[9,6],[4,6],[4,8],[6,8],
+               [2,3],[2,10],[3,10],[3,5],[10,7],[5,7],[5,8],[7,8]];
+const BRIDGE = 8;
+const RIVER = [[440,0],[465,140],[480,280],[495,420],[520,560]];  // point-symmetric
+const ADJ = NODES.map(() => []);
+for (const [a, b] of ROADS) { ADJ[a].push(b); ADJ[b].push(a); }
+function adjacent(a, b) { return ADJ[a].includes(b); }
+
+function beats(a, b) { return (a === INF && b === CAV) || (a === CAV && b === ARC) || (a === ARC && b === INF); }
+function mult(a, b) { return beats(a, b) ? ADV : (beats(b, a) ? DIS : 1); }
+function radius(b) { return b.hq ? HQ_R : B_R; }
+function shielded(b) { return b.hq && b.owner && S.b.some(o => o !== b && o.owner === b.owner); }
+
+let S, drag = null, mouse = { x: 0, y: 0 }, flash = { text: '', t: 0 }, menu = null;
+
+function setType(b, type) {
+  b.type = type;
+  S.lines = S.lines.filter(l => l.from !== b.id);   // old flow stops; draw a new line
+}
+function aiChooseType(b) {
+  const counts = [0, 0, 0];
+  for (const o of S.b) if (o.owner === 1 && o.type !== EMPTY) counts[o.type]++;
+  const common = counts.indexOf(Math.max(...counts));
+  b.type = Math.random() < AI_SMART ? COUNTER_OF[common] : Math.floor(Math.random() * 3);
+}
+
+function newGame() {
+  menu = null; drag = null;
+  S = { t: 0, over: false, winner: 0, b: [], lines: [], units: [], aiT: 0,
+        stats: { actions: 0, captured: 0, killsP: 0, counterKillsP: 0, lostP: 0 } };
+  NODES.forEach((d, i) => S.b.push({ id: i, x: d[0], y: d[1], owner: d[2], type: d[3], g: d[4], hq: d[5] }));
+}
+
+function spawn(b, t) {
+  const a = Math.random() * Math.PI * 2, r = Math.random() * 10;
+  S.units.push({ x: b.x + Math.cos(a) * r, y: b.y + Math.sin(a) * r, owner: b.owner, type: b.type,
+                 to: t.id, hp: UNIT_HP, ox: (Math.random() - .5) * 14, oy: (Math.random() - .5) * 14,
+                 lastO: 0, lastT: 0 });
+}
+
+function update(dt) {
+  if (flash.t > 0) flash.t -= dt;
+  if (S.over) return;
+  S.t += dt;
+
+  for (const b of S.b) {
+    const cap = b.hq ? HQ_CAP : CAP;
+    if (b.owner && b.g < cap) b.g = Math.min(cap, b.g + GROW * dt);
+  }
+
+  // emit flows
+  const per = {};
+  for (const l of S.lines) (per[l.from] = per[l.from] || []).push(l);
+  for (const id in per) {
+    const b = S.b[id], ls = per[id], rate = FLOW_RATE / ls.length;
+    for (const l of ls) {
+      l.acc += rate * dt;
+      while (l.acc >= 1 && b.g >= 2) { l.acc -= 1; b.g -= 1; spawn(b, S.b[l.to]); }
+      if (l.acc > 1) l.acc = 1;
+    }
+  }
+
+  // units: fight or move (they only ever move along a road segment)
+  const U = S.units;
+  for (const u of U) {
+    let foe = null, bd = MELEE * MELEE;
+    for (const e of U) {
+      if (e.owner === u.owner || e.hp <= 0) continue;
+      const d = (e.x - u.x) ** 2 + (e.y - u.y) ** 2;
+      if (d < bd) { bd = d; foe = e; }
+    }
+    if (foe) {
+      foe.hp -= UNIT_DPS * mult(u.type, foe.type) * dt;
+      foe.lastO = u.owner; foe.lastT = u.type;
+      continue;
+    }
+    const t = S.b[u.to];
+    const dx = t.x + u.ox - u.x, dy = t.y + u.oy - u.y, d = Math.hypot(dx, dy) || 1;
+    u.x += dx / d * SPEED[u.type] * dt; u.y += dy / d * SPEED[u.type] * dt;
+    u.face = dx < 0 ? 1 : 0;
+    if (Math.hypot(t.x - u.x, t.y - u.y) <= radius(t)) {
+      u.hp = 0; u.arrived = true;
+      if (t.owner === u.owner) t.g = Math.min((t.hq ? HQ_CAP : CAP) + 10, t.g + 1);
+      else if (!shielded(t)) {
+        t.g -= mult(u.type, t.type);
+        if (t.g < 0) {
+          t.owner = u.owner; t.g = Math.max(1, -t.g);
+          S.lines = S.lines.filter(l => l.from !== t.id);
+          if (menu && menu.b === t) menu = null;
+          if (u.owner === 1) {
+            S.stats.captured++;
+            if (t.type === EMPTY && !menu) menu = { b: t };
+          } else if (t.type === EMPTY) aiChooseType(t);
+        }
+      }
+      // shielded enemy HQ: the unit is spent and deals nothing
+    }
+  }
+
+  // deaths
+  for (const u of U) {
+    if (u.hp <= 0 && !u.arrived) {
+      if (u.owner === 2 && u.lastO === 1) {
+        S.stats.killsP++;
+        if (beats(u.lastT, u.type)) S.stats.counterKillsP++;
+      }
+      if (u.owner === 1) S.stats.lostP++;
+    }
+  }
+  S.units = U.filter(u => u.hp > 0);
+
+  // AI
+  S.aiT += dt;
+  if (S.aiT >= AI_TICK) { S.aiT = 0; aiThink(); }
+
+  // win check — HQ is shielded until it is the last building, so this is "HQ captured"
+  const p = S.b.filter(b => b.owner === 1).length, e = S.b.filter(b => b.owner === 2).length;
+  if (!p || !e) { S.over = true; S.winner = p ? 1 : 2; }
+}
+
+// graph distance from each node to the nearest node not owned by `owner`
+function frontDist(owner) {
+  const dist = S.b.map(b => b.owner !== owner ? 0 : Infinity), q = [];
+  S.b.forEach((b, i) => { if (dist[i] === 0) q.push(i); });
+  while (q.length) {
+    const i = q.shift();
+    for (const j of ADJ[i]) if (dist[j] > dist[i] + 1) { dist[j] = dist[i] + 1; q.push(j); }
+  }
+  return dist;
+}
+
+function aiThink() {
+  const fd = frontDist(2);
+  for (const b of S.b) {
+    if (b.owner !== 2) continue;
+    if (b.type === EMPTY) { aiChooseType(b); continue; }
+    const mine = S.lines.filter(l => l.from === b.id);
+    if (b.g < 4) { S.lines = S.lines.filter(l => l.from !== b.id); continue; }
+    if (mine.length && Math.random() > 0.35) continue;
+    if (b.g < 8 && !mine.length) continue;
+    let best = null, bs = -1e9;
+    for (const j of ADJ[b.id]) {
+      const t = S.b[j];
+      if (t.owner === 2 || shielded(t)) continue;
+      let s = mult(b.type, t.type) * b.g * 0.8 - t.g * 1.2 + (t.owner === 1 ? 4 : 0);
+      if (Math.random() > AI_SMART) s = Math.random() * 10;
+      if (s > bs) { bs = s; best = t; }
+    }
+    if (!best) {
+      // interior building: push reinforcements toward the front
+      let bf = Infinity;
+      for (const j of ADJ[b.id]) if (S.b[j].owner === 2 && fd[j] < fd[b.id] && fd[j] < bf) { bf = fd[j]; best = S.b[j]; }
+      if (!best || b.g < 15) { S.lines = S.lines.filter(l => l.from !== b.id); continue; }
+    }
+    S.lines = S.lines.filter(l => l.from !== b.id);
+    S.lines.push({ from: b.id, to: best.id, owner: 2, acc: 0 });
+  }
+}
+
+// ---- input ----
+function pos(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+}
+function bAt(p) { return S.b.find(b => Math.hypot(b.x - p.x, b.y - p.y) <= radius(b) + 4); }
+function distSeg(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+function say(text) { flash = { text, t: 1.5 }; }
+function menuOpts(b) {
+  const y = b.y - (b.y < 120 ? -95 : 95);          // flip below if too close to the top edge
+  return [INF, ARC, CAV].map((type, i) => ({ type, x: b.x + (i - 1) * 62, y: y + (i === 1 ? (b.y < 120 ? 18 : -18) : 0) }));
+}
+function chooseType(b, type) {
+  if (b.owner !== 1) { menu = null; return; }
+  if (b.type === type) { menu = null; return; }
+  if (b.type !== EMPTY) {
+    if (b.g < REBUILD_COST + 1) { say('Перестройка стоит ' + REBUILD_COST + ' воинов — гарнизона не хватает'); return; }
+    b.g -= REBUILD_COST;
+  }
+  setType(b, type); S.stats.actions++; menu = null;
+}
+window.addEventListener('keydown', e => { if (e.key === 'Escape') menu = null; });
+cv.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  if (S.over) { newGame(); return; }
+  const p = pos(e);
+  if (menu) {
+    const opt = menuOpts(menu.b).find(o => Math.hypot(o.x - p.x, o.y - p.y) <= 26);
+    if (opt) { chooseType(menu.b, opt.type); return; }
+    menu = null;
+  }
+  const b = bAt(p);
+  if (b && b.owner === 1) { drag = { from: b }; return; }
+  const hit = S.lines.find(l => l.owner === 1 && distSeg(p, S.b[l.from], S.b[l.to]) < 8);
+  if (hit) { S.lines = S.lines.filter(l => l !== hit); S.stats.actions++; }
+});
+cv.addEventListener('mouseup', e => {
+  if (!drag || e.button !== 0) return;
+  const t = bAt(pos(e)), f = drag.from; drag = null;
+  if (t === f) { menu = { b: f }; return; }          // plain click on own building -> build menu
+  if (!t) return;
+  if (f.type === EMPTY) { say('Сначала выберите, что построить (клик по зданию)'); return; }
+  if (!adjacent(f.id, t.id)) { say('Нет дороги — только к соседнему зданию'); return; }
+  if (shielded(t) && t.owner !== 1) { say('Столица под щитом — сначала захватите остальные здания'); return; }
+  const ex = S.lines.find(l => l.from === f.id && l.to === t.id);
+  if (ex) S.lines = S.lines.filter(l => l !== ex);
+  else {
+    const mine = S.lines.filter(l => l.from === f.id);
+    if (mine.length >= MAX_LINES) S.lines = S.lines.filter(l => l !== mine[0]);
+    S.lines.push({ from: f.id, to: t.id, owner: 1, acc: 0 });
+  }
+  S.stats.actions++;
+});
+cv.addEventListener('mousemove', e => { mouse = pos(e); });
+cv.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const b = bAt(pos(e));
+  if (b && b.owner === 1 && S.lines.some(l => l.from === b.id)) {
+    S.lines = S.lines.filter(l => l.from !== b.id); S.stats.actions++;
+  }
+});
+
+// ---- draw ----
+// static background (river, bridge, cobblestone roads) rendered once
+const BG = (() => {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  let seed = 12345;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+  // river
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  g.strokeStyle = '#2c5784'; g.lineWidth = 40;
+  g.beginPath(); g.moveTo(RIVER[0][0], RIVER[0][1]);
+  for (const [x, y] of RIVER.slice(1)) g.lineTo(x, y);
+  g.stroke();
+  g.strokeStyle = '#3b6fa8'; g.lineWidth = 30; g.stroke();
+
+  // cobblestone roads
+  const STONES = ['#a39b8b', '#938a7a', '#b2aa9a', '#8a8272', '#9d9483'];
+  for (const [a, b] of ROADS) {
+    const A = NODES[a], B = NODES[b];
+    const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy);
+    const ux = dx / len, uy = dy / len, nx = -uy, ny = ux, ang = Math.atan2(dy, dx);
+    g.strokeStyle = '#4a3d2b'; g.lineWidth = 20;           // packed-earth bed
+    g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+    for (let t = 4; t < len - 2; t += 7) {
+      for (const k of [-1, 0, 1]) {
+        const off = k * 5.5 + (rnd() - .5) * 1.5, along = t + (k === 0 ? 3.5 : 0) + (rnd() - .5) * 1.5;
+        const x = A[0] + ux * along + nx * off, y = A[1] + uy * along + ny * off;
+        g.save(); g.translate(x, y); g.rotate(ang + (rnd() - .5) * .5);
+        g.fillStyle = STONES[Math.floor(rnd() * STONES.length)];
+        g.beginPath(); g.ellipse(0, 0, 3 + rnd() * 1.2, 2.2 + rnd() * 0.8, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(40,32,22,.7)'; g.lineWidth = 1; g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.18)';                 // highlight
+        g.beginPath(); g.ellipse(-0.8, -0.8, 1.3, 0.8, 0, 0, Math.PI * 2); g.fill();
+        g.restore();
+      }
+    }
+  }
+
+  // bridge: wooden planks with rails, across the river
+  const [bx, by] = NODES[BRIDGE];
+  g.save(); g.translate(bx, by); g.rotate(-0.1);
+  g.fillStyle = '#6b4f2e'; g.fillRect(-50, -17, 100, 34);
+  for (let x = -48; x < 50; x += 8) { g.fillStyle = x % 16 ? '#8b6b3e' : '#7d5f36'; g.fillRect(x, -15, 6.5, 30); }
+  g.fillStyle = '#4a3520'; g.fillRect(-52, -20, 104, 4); g.fillRect(-52, 16, 104, 4);
+  g.restore();
+  g.fillStyle = '#fff'; g.font = '11px sans-serif'; g.textAlign = 'center';
+  g.fillText('МОСТ', bx, by - 42);
+  return c;
+})();
+
+// ---- sprites (drawn procedurally once, then cached) ----
+const TEAM = { 0: ['#8a8a8a', '#5f5f5f'], 1: ['#3b82f6', '#1d4ed8'], 2: ['#ef4444', '#b91c1c'] };
+const TYPE_LABEL = ['Казарма', 'Стрельбище', 'Конюшня'];
+const SPR = {};
+
+function flag(g, x, y, owner, h) {
+  g.strokeStyle = '#3b2a18'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - h); g.stroke();
+  g.fillStyle = TEAM[owner][0];
+  g.beginPath(); g.moveTo(x, y - h); g.lineTo(x + 14, y - h + 4); g.lineTo(x, y - h + 9); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 1; g.stroke();
+}
+
+function buildingSprite(type, owner, hq) {
+  const key = 'b' + type + owner + hq;
+  if (SPR[key]) return SPR[key];
+  const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+  const g = c.getContext('2d'), cx = 48, cy = 52;
+  // ground plate in team colour
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(cx, cy + 14, 36, 14, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = TEAM[owner][0]; g.beginPath(); g.ellipse(cx, cy + 12, 33, 12, 0, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = TEAM[owner][1]; g.lineWidth = 2; g.stroke();
+  g.lineJoin = 'round';
+
+  if (hq) {
+    // general's tent: striped pavilion
+    const top = cy - 34, base = cy + 12, half = 30;
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle = i % 2 ? '#f3ead7' : TEAM[owner][0];
+      g.beginPath(); g.moveTo(cx, top);
+      g.lineTo(cx - half + i * (2 * half / 6), base);
+      g.lineTo(cx - half + (i + 1) * (2 * half / 6), base); g.fill();
+    }
+    g.strokeStyle = '#3b2a18'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx, top); g.lineTo(cx - half, base); g.lineTo(cx + half, base); g.closePath(); g.stroke();
+    g.fillStyle = '#2a1d10'; g.beginPath(); g.moveTo(cx, base - 18); g.lineTo(cx - 7, base); g.lineTo(cx + 7, base); g.fill();
+    flag(g, cx, top, owner, 16);
+    g.fillStyle = '#facc15'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
+    g.fillText('★', cx + 6, top - 9);
+  } else if (type === INF) {
+    // barracks: timber house, tiled roof, crossed swords
+    g.fillStyle = '#9c7748'; g.fillRect(cx - 26, cy - 10, 52, 22);
+    g.strokeStyle = '#4a3520'; g.lineWidth = 2; g.strokeRect(cx - 26, cy - 10, 52, 22);
+    for (let x = cx - 18; x < cx + 26; x += 10) { g.beginPath(); g.moveTo(x, cy - 10); g.lineTo(x, cy + 12); g.stroke(); }
+    g.fillStyle = '#8e3322'; g.beginPath(); g.moveTo(cx - 31, cy - 9); g.lineTo(cx, cy - 30); g.lineTo(cx + 31, cy - 9); g.closePath(); g.fill();
+    g.strokeStyle = '#4d1a10'; g.stroke();
+    g.fillStyle = '#2a1d10'; g.fillRect(cx - 5, cy, 10, 12);
+    g.strokeStyle = '#e5e7eb'; g.lineWidth = 2.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(cx - 8, cy - 25); g.lineTo(cx + 8, cy - 13); g.moveTo(cx + 8, cy - 25); g.lineTo(cx - 8, cy - 13); g.stroke();
+    g.lineCap = 'butt';
+    flag(g, cx + 24, cy - 10, owner, 22);
+  } else if (type === ARC) {
+    // archery range: crenellated stone tower + target
+    g.fillStyle = '#a39b8b'; g.fillRect(cx - 22, cy - 26, 20, 38);
+    g.strokeStyle = '#4a4238'; g.lineWidth = 2; g.strokeRect(cx - 22, cy - 26, 20, 38);
+    for (let i = 0; i < 3; i++) { g.fillStyle = '#a39b8b'; g.fillRect(cx - 22 + i * 7, cy - 32, 5, 7); g.strokeRect(cx - 22 + i * 7, cy - 32, 5, 7); }
+    g.fillStyle = '#2a1d10'; g.fillRect(cx - 15, cy - 16, 6, 9);
+    g.strokeStyle = '#5b4126'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(cx + 8, cy + 12); g.lineTo(cx + 14, cy - 6); g.moveTo(cx + 26, cy + 12); g.lineTo(cx + 20, cy - 6); g.stroke();
+    const rings = ['#f3ead7', '#dc2626', '#f3ead7', '#dc2626'];
+    rings.forEach((col, i) => { g.fillStyle = col; g.beginPath(); g.arc(cx + 17, cy - 8, 11 - i * 2.7, 0, Math.PI * 2); g.fill(); });
+    g.strokeStyle = '#3b2a18'; g.lineWidth = 1.5; g.beginPath(); g.arc(cx + 17, cy - 8, 11, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = '#3b2a18'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(cx + 4, cy - 14); g.lineTo(cx + 17, cy - 8); g.stroke();
+    flag(g, cx - 12, cy - 32, owner, 14);
+  } else if (type === EMPTY) {
+    // empty plot: stone foundation, stakes, stacked timber
+    g.strokeStyle = '#8a8272'; g.lineWidth = 4; g.setLineDash([6, 4]);
+    g.strokeRect(cx - 24, cy - 14, 48, 26); g.setLineDash([]);
+    g.strokeStyle = '#5b4126'; g.lineWidth = 3;
+    for (const [x, y] of [[-24, -14], [24, -14], [-24, 12], [24, 12]]) {
+      g.beginPath(); g.moveTo(cx + x, cy + y); g.lineTo(cx + x, cy + y - 10); g.stroke();
+    }
+    g.fillStyle = '#9c7748';
+    for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(cx - 6 + i * 6, cy + 2 - (i === 1 ? 5 : 0), 9, 3, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#4a3520'; g.lineWidth = 1; g.stroke(); }
+    if (owner) flag(g, cx + 24, cy - 24, owner, 14);
+  } else {
+    // stables: wide barn, double doors, horseshoe
+    g.fillStyle = '#7a4a2a'; g.fillRect(cx - 30, cy - 12, 60, 24);
+    g.strokeStyle = '#3b2414'; g.lineWidth = 2; g.strokeRect(cx - 30, cy - 12, 60, 24);
+    g.fillStyle = '#5b3a22'; g.beginPath(); g.moveTo(cx - 34, cy - 11); g.lineTo(cx - 20, cy - 28); g.lineTo(cx + 20, cy - 28); g.lineTo(cx + 34, cy - 11); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#c9a36a'; g.fillRect(cx - 11, cy - 4, 22, 16);
+    g.strokeStyle = '#3b2414'; g.strokeRect(cx - 11, cy - 4, 22, 16);
+    g.beginPath(); g.moveTo(cx - 11, cy - 4); g.lineTo(cx + 11, cy + 12); g.moveTo(cx + 11, cy - 4); g.lineTo(cx - 11, cy + 12); g.moveTo(cx, cy - 4); g.lineTo(cx, cy + 12); g.stroke();
+    g.strokeStyle = '#facc15'; g.lineWidth = 3.5; g.lineCap = 'round';
+    g.beginPath(); g.arc(cx, cy - 18, 5, Math.PI * 0.1, Math.PI * 0.9, true); g.stroke();
+    g.lineCap = 'butt';
+    flag(g, cx + 26, cy - 12, owner, 20);
+  }
+  return (SPR[key] = c);
+}
+
+function unitSprite(type, owner, flip) {
+  const key = 'u' + type + owner + flip;
+  if (SPR[key]) return SPR[key];
+  const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+  const g = c.getContext('2d');
+  if (flip) { g.translate(32, 0); g.scale(-1, 1); }
+  const team = TEAM[owner][0], dark = TEAM[owner][1], skin = '#e8c39e';
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  if (type === CAV) {
+    // horse
+    g.fillStyle = '#7a4a2a';
+    g.beginPath(); g.ellipse(15, 20, 9, 4.5, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.moveTo(21, 18); g.lineTo(27, 12); g.lineTo(29, 14); g.lineTo(24, 20); g.fill();
+    g.strokeStyle = '#4a2c18'; g.lineWidth = 2;
+    for (const x of [9, 12, 18, 21]) { g.beginPath(); g.moveTo(x, 23); g.lineTo(x, 29); g.stroke(); }
+    g.beginPath(); g.moveTo(6, 19); g.lineTo(3, 24); g.stroke();
+    // rider
+    g.fillStyle = team; g.fillRect(12, 9, 6, 8);
+    g.fillStyle = skin; g.beginPath(); g.arc(15, 7, 3, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#d1d5db'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(10, 16); g.lineTo(30, 4); g.stroke();
+  } else {
+    // body
+    g.fillStyle = team; g.fillRect(12, 12, 8, 10);
+    g.strokeStyle = dark; g.lineWidth = 1; g.strokeRect(12, 12, 8, 10);
+    g.strokeStyle = '#3b2a18'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(14, 22); g.lineTo(13, 29); g.moveTo(18, 22); g.lineTo(19, 29); g.stroke();
+    g.fillStyle = skin; g.beginPath(); g.arc(16, 8, 3.5, 0, Math.PI * 2); g.fill();
+    if (type === INF) {
+      g.fillStyle = '#9ca3af'; g.beginPath(); g.arc(16, 7, 3.8, Math.PI, 0); g.fill();          // helmet
+      g.strokeStyle = '#d1d5db'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(10, 26); g.lineTo(10, 3); g.stroke(); // spear
+      g.fillStyle = team; g.fillRect(17, 11, 9, 13);                                             // scutum
+      g.strokeStyle = '#facc15'; g.lineWidth = 1.5; g.strokeRect(17, 11, 9, 13);
+      g.fillStyle = '#facc15'; g.beginPath(); g.arc(21.5, 17.5, 1.6, 0, Math.PI * 2); g.fill();
+    } else {
+      g.fillStyle = '#4b5d2a'; g.beginPath(); g.arc(16, 7, 3.8, Math.PI * 0.9, Math.PI * 2.1); g.fill(); // hood
+      g.strokeStyle = '#7c4a1e'; g.lineWidth = 2; g.beginPath(); g.arc(19, 15, 8, -Math.PI * 0.45, Math.PI * 0.45); g.stroke(); // bow
+      g.strokeStyle = '#e5e7eb'; g.lineWidth = 0.8; g.beginPath();
+      g.moveTo(19 + 8 * Math.cos(-Math.PI * 0.45), 15 + 8 * Math.sin(-Math.PI * 0.45));
+      g.lineTo(19 + 8 * Math.cos(Math.PI * 0.45), 15 + 8 * Math.sin(Math.PI * 0.45)); g.stroke();
+      g.fillStyle = '#6b4423'; g.fillRect(9, 11, 3, 8);                                          // quiver
+    }
+  }
+  return (SPR[key] = c);
+}
+
+function arrow(a, b, col, w) {
+  ctx.strokeStyle = col; ctx.lineWidth = w;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  const ang = Math.atan2(b.y - a.y, b.x - a.x), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(mx + Math.cos(ang) * 9, my + Math.sin(ang) * 9);
+  ctx.lineTo(mx + Math.cos(ang + 2.5) * 9, my + Math.sin(ang + 2.5) * 9);
+  ctx.lineTo(mx + Math.cos(ang - 2.5) * 9, my + Math.sin(ang - 2.5) * 9);
+  ctx.fill();
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.drawImage(BG, 0, 0);
+
+  for (const l of S.lines) arrow(S.b[l.from], S.b[l.to], l.owner === 1 ? 'rgba(96,165,250,.85)' : 'rgba(248,113,113,.7)', 3);
+  if (drag) {
+    for (const j of ADJ[drag.from.id]) {
+      const t = S.b[j];
+      ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(t.x, t.y, radius(t) + 7, 0, Math.PI * 2); ctx.stroke();
+    }
+    arrow(drag.from, mouse, 'rgba(255,255,255,.5)', 2);
+  }
+
+  for (const b of S.b) {
+    const r = radius(b);
+    if (shielded(b)) {
+      ctx.strokeStyle = 'rgba(250,204,21,.9)'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(b.x, b.y, r + 5, 0, Math.PI * 2); ctx.stroke();
+    }
+    const spr = buildingSprite(b.type, b.owner, b.hq), sc = b.hq ? 1.15 : 1;
+    ctx.drawImage(spr, b.x - 48 * sc, b.y - 56 * sc, 96 * sc, 96 * sc);
+    // garrison plaque
+    const label = (b.hq ? 'Ставка' : b.type === EMPTY ? 'Пустырь' : TYPE_LABEL[b.type]) + ' · ' + Math.floor(b.g);
+    if (b.owner === 1 && b.type === EMPTY) {                       // nudge: choose what to build
+      const a = 0.5 + 0.5 * Math.sin(S.t * 6);
+      ctx.fillStyle = 'rgba(250,204,21,' + (0.5 + a * 0.5) + ')'; ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', b.x, b.y - 4);
+    }
+    ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(label).width + 10, py = b.y + r + 10;
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(b.x - tw / 2, py - 8, tw, 16);
+    ctx.fillStyle = TEAM[b.owner][0]; ctx.fillRect(b.x - tw / 2, py - 8, 3, 16);
+    ctx.fillStyle = '#fff'; ctx.fillText(label, b.x + 1, py);
+  }
+
+  for (const u of S.units) {
+    const s = u.type === CAV ? 22 : 17;
+    ctx.drawImage(unitSprite(u.type, u.owner, u.face || 0), u.x - s / 2, u.y - s * 0.7, s, s);
+  }
+
+  const p = S.b.filter(b => b.owner === 1).length, e = S.b.filter(b => b.owner === 2).length;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = '14px sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('Время ' + Math.floor(S.t) + 'с   Ваши здания: ' + p + '   Вражеские: ' + e + '   Юнитов: ' + S.units.length, 10, 18);
+  if (menu && !S.over) {
+    const b = menu.b;
+    ctx.strokeStyle = 'rgba(250,204,21,.9)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(b.x, b.y, radius(b) + 8, 0, Math.PI * 2); ctx.stroke();
+    for (const o of menuOpts(b)) {
+      const cur = o.type === b.type;
+      ctx.fillStyle = cur ? 'rgba(80,80,80,.9)' : 'rgba(20,20,24,.9)';
+      ctx.strokeStyle = cur ? '#666' : '#facc15'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(o.x, o.y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.drawImage(buildingSprite(o.type, 1, false), o.x - 24, o.y - 30, 48, 48);
+      ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff'; ctx.fillText(TYPE_LABEL[o.type], o.x, o.y + 34);
+      const sub = cur ? 'сейчас' : (b.type === EMPTY ? 'бесплатно' : '−' + REBUILD_COST + ' воинов');
+      ctx.fillStyle = '#facc15'; ctx.font = '10px sans-serif'; ctx.fillText(sub, o.x, o.y + 46);
+    }
+  }
+  if (flash.t > 0) {
+    ctx.textAlign = 'center'; ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#facc15';
+    ctx.fillText(flash.text, W / 2, H - 14);
+  }
+
+  if (S.over) {
+    const st = S.stats, pct = st.killsP ? Math.round(100 * st.counterKillsP / st.killsP) : 0;
+    ctx.fillStyle = 'rgba(0,0,0,.75)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.font = 'bold 40px sans-serif'; ctx.fillText(S.winner === 1 ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ', W / 2, 150);
+    ctx.font = '20px sans-serif';
+    const lines = [
+      'Время боя: ' + Math.floor(S.t) + ' с',
+      'Действий с линиями (создать/снять/сменить): ' + st.actions,
+      'Захвачено зданий: ' + st.captured,
+      'Убито вражеских юнитов: ' + st.killsP + ', из них «по контре»: ' + pct + '%',
+      'Потеряно своих юнитов в бою: ' + st.lostP,
+      '',
+      'Клик — сыграть ещё раз'
+    ];
+    lines.forEach((t, i) => ctx.fillText(t, W / 2, 220 + i * 34));
+  }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt); draw(); requestAnimationFrame(loop);
+}
+newGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
