@@ -20,6 +20,7 @@
   .gen { position: relative; height: 110px; border-radius: 16px; background: #4a2e18; border: 2.5px solid var(--ol); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; }
   .gen.on { background: #6a4626; border: 4px solid #ffcc33; transform: translateY(-3px); }
   .gen canvas:first-child { border-radius: 50%; border: 3px solid var(--ol); } .gen canvas:nth-child(2) { position: absolute; left: 50%; top: 38px; margin-left: 10px; }
+  .grow > canvas.av { border: 0; border-radius: 0; }
   .gen b { font: 400 17px var(--display); color: #ffe6a8; } .gen small { font: 800 12px var(--body); color: var(--muted); }
   .tree { flex: 1; overflow-y: auto; padding: 10px 12px 6px; display: flex; flex-direction: column; gap: 6px; }
   .root { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 16px; background: #5a3a20; border: 2.5px solid var(--ol); }
@@ -38,7 +39,9 @@
   .act { margin: 6px 8px 8px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; border-radius: 18px; background: rgba(40,24,14,.94); border: 3px solid var(--gold); flex: none; }
   .act canvas { border-radius: 12px; border: 2px solid var(--ol); } .act .t { flex: 1; min-width: 0; } .act .t b { display: block; font: 400 20px var(--display); color: #ffe6a8; } .act .t span { font: 800 14px var(--body); color: var(--muted); }
   .yb { height: 58px; padding: 0 18px; border-radius: 18px; border: 3.4px solid var(--ol); background: #ffc93c; box-shadow: 0 5px 0 #7a4a1c; font: 400 21px var(--display); color: #3a1e08; }
-  .yb:disabled { filter: grayscale(.9); opacity: .6; cursor: not-allowed; }
+  .yb:disabled, .yb.dis { filter: grayscale(.9); opacity: .6; cursor: not-allowed; }
+  .why { margin: 6px 8px 0; padding: 9px 12px; border-radius: 14px; background: rgba(255,230,168,.14); border: 2px solid #f2c14a; color: #ffe6a8; font: 700 15px var(--body); line-height: 1.3; flex: none; }
+  .why[hidden] { display: none; } .why.pulse { animation: whyp .6s; } @keyframes whyp { 0%, 100% { background: rgba(255,230,168,.14); } 40% { background: rgba(242,193,74,.5); } }
   .ib { width: 48px; height: 48px; border-radius: 14px; background: #5a3a20; border: 2.5px solid var(--ol); font: 400 22px var(--display); color: #ffe6a8; }
   .card { position: absolute; inset: 0; background: rgba(10,5,2,.6); display: flex; align-items: flex-end; z-index: 5; }
   .sheet { position: relative; width: 100%; max-height: 82%; overflow-y: auto; padding: 18px 16px 22px; border-radius: 28px 28px 0 0; background: linear-gradient(#5a3a20, #3a2414); border-top: 3px solid var(--gold); }
@@ -69,6 +72,7 @@
   <section id="barracks" style="display:flex;flex-direction:column;flex:1;min-height:0">
     <div class="gens" id="gens"></div>
     <div class="tree" id="tree"></div>
+    <div class="why" id="why" role="status" hidden></div>
     <div class="act"><span id="apic"></span><div class="t"><b id="aname"></b><span id="ainfo"></span></div><button class="ib" id="info" type="button" aria-label="Карточка отряда">ⓘ</button><button class="yb" id="retrain" type="button">Переобучить</button></div>
   </section>
   <section class="pre" id="pre" hidden>
@@ -404,22 +408,136 @@ function verdict(cls, foe) {
   return beats[k] === f ? 1 : beats[f] === k ? -1 : 0;
 }
 
+// ==== tutor-ui begin
+// The tutorial coach shared by the battle and the pre-battle screen. Look and feel are those of the map tutorial of the main game:
+// a dark bubble with a gold edge and the «Обучение · 1 из 5» line, the same pointing hand, a dimmed screen with a spotlight on the element it talks about.
+// A step: { text, target: () => element | box, points: () => [{ x, y, r, world }], point: [x, y], catch, btn, last, real, done, skipIf, onEnter, onLeave }
+//   catch: tapping the lit zone only moves on (nothing is activated); btn: «Понятно» and the rest of the screen is locked; done: moves on by itself when it returns true;
+//   real: the lit element is really pressable (the last step); points: rings round map spots, the hand visits them one by one (hooks.focus pans the map to the next).
+const Tutor = (() => {
+  const CSS = `
+  #tutor { position: absolute; inset: 0; z-index: 60; pointer-events: none; font-family: 'Alegreya Sans', 'Segoe UI', Roboto, sans-serif; }
+  #tutor [hidden] { display: none !important; }
+  #tutor .td-dim { position: absolute; inset: 0; background: rgba(10,6,2,.6); }
+  #tutor .td-ring { position: absolute; border: 3px solid #d9a441; box-shadow: 0 0 14px #d9a441, 0 0 0 1600px rgba(10,6,2,.7); }
+  #tutor .td-pt.cur { border-color: #fff3a0; box-shadow: 0 0 22px rgba(255,243,160,.95); }
+  #tutor .td-pt { position: absolute; border: 3px dashed #ffd76a; border-radius: 50%; box-shadow: 0 0 14px rgba(255,215,106,.8); animation: tdpt .9s ease-in-out infinite alternate; }
+  @keyframes tdpt { from { transform: scale(.94); } to { transform: scale(1.06); } }
+  #tutor .td-block { position: absolute; inset: 0; pointer-events: auto; }
+  #tutor .td-hand { position: absolute; width: 34px; height: 50px; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); animation: tdup .8s ease-in-out infinite alternate; }
+  #tutor .td-hand svg { width: 100%; height: 100%; display: block; } #tutor .td-hand.dn svg { transform: scaleY(-1); } #tutor .td-hand.dn { animation-name: tddn; }
+  @keyframes tdup { from { transform: translateY(10px); } to { transform: translateY(0); } } @keyframes tddn { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+  #tutor .td-bub { position: absolute; left: 12px; right: 12px; top: 78px; padding: 12px 14px; border-radius: 12px; background: rgba(30,25,19,.96); border: 1px solid #d9a441; box-shadow: 0 10px 26px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; animation: tdpop .35s cubic-bezier(.2,1.3,.4,1); }
+  @keyframes tdpop { from { opacity: 0; transform: translateY(16px) scale(.94); } }
+  #tutor .td-eb { color: #a99c82; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  #tutor .td-bub p { margin: 0; font-size: 15px; line-height: 1.35; color: #efe6d2; }
+  #tutor .td-row { display: flex; justify-content: flex-end; gap: 8px; }
+  #tutor .td-btn { font: 700 15px/1 'Alegreya Sans', 'Segoe UI', sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #17140f; background: #d9a441; border: 1px solid #d9a441; border-radius: 10px; min-width: 150px; min-height: 48px; padding: 12px 22px; cursor: pointer; }
+  #tutor .td-btn.ghost { background: transparent; color: #efe6d2; border-color: #3b3226; }
+  @media (prefers-reduced-motion: reduce) { #tutor .td-hand, #tutor .td-pt { animation: none; } }`;
+  const HAND = '<svg viewBox="0 0 24 36" aria-hidden="true"><path d="M8 2l4-1v16l5-2 4 1 4 2 1 11c-4 8-12 8-16 6L1 27l-2-7 5-1z" fill="#ffe2b0" stroke="#28190a" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  let el = null, board = null, T = null;
+  const q = s => el.querySelector(s);
+  function build() {
+    if (el) return;
+    const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+    board = document.getElementById('board') || document.body;
+    el = document.createElement('div'); el.id = 'tutor';
+    el.innerHTML = '<div class="td-dim" hidden></div><div class="td-pts"></div><div class="td-ring" hidden></div><div class="td-block" hidden></div><div class="td-hand" hidden>' + HAND + '</div>'
+      + '<div class="td-bub" hidden><span class="td-eb"></span><p></p><div class="td-row"><button type="button" class="td-btn" data-a="ok">Понятно</button></div></div>';
+    board.appendChild(el);
+    q('.td-bub').addEventListener('click', e => { if (e.target.dataset && e.target.dataset.a === 'ok') next(); });
+    q('.td-block').addEventListener('click', e => {
+      if (!T) return; const st = T.steps[T.i], bd = board.getBoundingClientRect(), k = bd.width / 540, x = (e.clientX - bd.left) / k, y = (e.clientY - bd.top) / k;
+      if ((st.catch || st.real) && T.box) { const b = T.box; if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) { if (st.real) { const tg = st.target && st.target(); if (tg && tg.click) tg.click(); } else next(); } }
+      else if (st.points && T.list && T.list.length) {   // a touch on the lit spot: on to the next one, after the last one the tutorial is over
+        const c = T.list[T.pi]; if (!c) return; const r = Math.max(34, c.r), dx = (x - c.x) / r, dy = (y - c.y) / (r * 0.7);
+        if (dx * dx + dy * dy <= 1.5) { if (T.pi + 1 >= T.list.length) next(); else { T.pi++; if (T.hooks.focus && T.list[T.pi].world) T.hooks.focus(T.list[T.pi].world); } }
+      }
+    });
+  }
+  function boxOf(tg) {   // an element or a ready box -> a box in the 540x960 board's pixels
+    if (!tg) return null; if (tg.getBoundingClientRect) { if (tg.hidden || tg.offsetParent === null) return null; const bd = board.getBoundingClientRect(), r = tg.getBoundingClientRect(), k = bd.width / 540; return { x: (r.left - bd.left) / k, y: (r.top - bd.top) / k, w: r.width / k, h: r.height / k, round: tg.id && tg.id.startsWith('rb') }; } return tg;
+  }
+  function place(hand, box, pad) {   // the hand comes from below and points up at a target in the upper half, otherwise from above and points down
+    const below = box.y + box.h / 2 < 480; hand.className = 'td-hand' + (below ? '' : ' dn'); hand.style.left = (box.x + box.w / 2 - 14) + 'px'; hand.style.top = (below ? box.y + box.h + pad - 3 : box.y - pad - 50 + 3) + 'px'; hand.hidden = false;
+  }
+  function render() {
+    const st = T.steps[T.i]; q('.td-eb').textContent = 'Обучение · ' + (T.i + 1) + ' из ' + T.steps.length; q('.td-bub p').innerHTML = st.text;
+    q('[data-a=ok]').hidden = !st.btn; q('.td-bub').hidden = false; T.pi = 0; T.pt = performance.now();
+    if (st.onEnter) st.onEnter(); if (T.hooks.pause) T.hooks.pause(!st.real);
+  }
+  function next() {
+    if (!T) return; const old = T.steps[T.i]; if (old && old.onLeave) old.onLeave();
+    T.i++; while (T.i < T.steps.length && T.steps[T.i].skipIf && T.steps[T.i].skipIf()) T.i++;
+    if (T.i >= T.steps.length) return end(); render();
+  }
+  function end() {
+    if (!T) return; const old = T.steps[T.i]; if (old && old.onLeave) old.onLeave(); const h = T.hooks; T = null;
+    for (const s of ['.td-dim', '.td-ring', '.td-block', '.td-hand', '.td-bub']) q(s).hidden = true; q('.td-pts').innerHTML = '';
+    if (h.pause) h.pause(false); if (h.end) h.end();
+  }
+  function frame() {
+    if (!T) return; requestAnimationFrame(frame); const st = T.steps[T.i]; if (!st) return;
+    if (st.done && st.done()) { next(); return; }
+    const ring = q('.td-ring'), hand = q('.td-hand'), dim = q('.td-dim'), pts = q('.td-pts'), pad = 6;
+    let box = boxOf(st.target && st.target()), list = st.points ? st.points() : null, spot = null; T.list = list;
+    if (!box && st.point) box = { x: st.point[0] - 24, y: st.point[1] - 24, w: 48, h: 48 };
+    T.box = box;
+    if (st.target && box) { ring.style.left = (box.x - pad) + 'px'; ring.style.top = (box.y - pad) + 'px'; ring.style.width = (box.w + pad * 2) + 'px'; ring.style.height = (box.h + pad * 2) + 'px'; ring.style.borderRadius = box.round ? '50%' : '16px'; ring.hidden = false; dim.hidden = true; }
+    else { ring.hidden = true; dim.hidden = false; dim.style.background = st.point ? 'rgba(10,6,2,.38)' : list ? 'rgba(10,6,2,.5)' : 'rgba(10,6,2,.6)'; }
+    if (list && list.length) {   // map spots: a ring on each, the hand on one of them, moving on every 2.6 s while the map pans to it
+      while (pts.children.length < list.length) { const d = document.createElement('div'); d.className = 'td-pt'; pts.appendChild(d); }
+      [...pts.children].forEach((d, i) => { d.classList.toggle('cur', i === T.pi); const p = list[i]; if (!p || p.x < -40 || p.x > 580 || p.y < 60 || p.y > 900) { d.hidden = true; return; } d.hidden = false; const r = Math.max(30, p.r); d.style.left = (p.x - r) + 'px'; d.style.top = (p.y - r * 0.6) + 'px'; d.style.width = (r * 2) + 'px'; d.style.height = (r * 1.2) + 'px'; d.style.borderRadius = '50%'; });
+      const c = list[T.pi]; if (c && c.x > -40 && c.x < 580 && c.y > 60 && c.y < 900) spot = { x: c.x - 6, y: c.y - 40, w: 12, h: 12 };
+    }
+    const hb = spot || (st.target || st.point ? box : null);
+    if (hb) place(hand, hb, pad); else hand.hidden = true;
+    q('.td-block').hidden = !(st.catch || st.real || st.btn); q('[data-a=ok]').hidden = !st.btn || !!(list && list.length);
+    const bub = q('.td-bub'), lo = hb && hb.y < 330; bub.style.top = lo ? 'auto' : '78px'; bub.style.bottom = lo ? '150px' : 'auto';
+  }
+  function start(steps, hooks) {
+    build(); steps = steps.filter(s => !(s.skipIf && s.skipIf())); if (!steps.length) return;
+    T = { i: -1, steps, hooks: hooks || {}, box: null, pi: 0, pt: 0 }; next(); requestAnimationFrame(frame);
+  }
+  return { start, end, active: () => !!T, tick: frame };
+})();
+
 // The barracks and the pre-battle screen, opened by the main game over its map (window.name 'legarmy').
 // The main game owns the denarii and the army; this page asks it to retrain and to start the fight.
 const $ = id => document.getElementById(id);
 const EMBED = window.name === 'legarmy';
 const GENS = ['Марк', 'Тит', 'Гай', 'Луций'];
 let S = { mode: 'barracks', coins: 640, army: ARMY_DEFAULT.slice(), owned: ['rome', 'veii'], recon: ['hoplite', 'e_arc', 'ambush', 'e_cav'], title: 'Горный перевал', training: null };
-let gi = 0, pick = null;
+let gi = 0, pick = null, whyT = 0, whyText = '';
 function fit() { const k = Math.max(0.3, Math.min(innerWidth / 540, innerHeight / 960, 1.2)); $('board').style.transform = 'scale(' + k + ')'; $('fit').style.width = 540 * k + 'px'; $('fit').style.height = 960 * k + 'px'; }
 addEventListener('resize', fit);
 const send = m => { if (EMBED) parent.postMessage(Object.assign({ legArmy: true }, m), '*'); };
 
 // small canvases: a soldier, a squad, a portrait, a type icon
 function cnv(w, h, drawFn) { const c = document.createElement('canvas'); c.width = w * 2; c.height = h * 2; const g = c.getContext('2d'); g.scale(2, 2); drawFn(g); c.style.width = w + 'px'; c.style.height = h + 'px'; return c; }
-const thumb = (cls, w, h, enemy) => cnv(w, h, g => { grass(g, 0, 0, w, h, '#86ce52', rng(cls.length * 7)); unit(g, w / 2, h - 10, cls, enemy ? 2 : 1, h / 70, enemy ? -1 : 1); });
+const thumb = (cls, w, h, enemy) => cnv(w, h, g => { grass(g, 0, 0, w, h, '#86ce52', rng(cls.length * 7)); unit(g, w / 2, h - 7, cls, enemy ? 2 : 1, h / 112, enemy ? -1 : 1); });
 const squadPic = (cls, w, h) => cnv(w, h, g => { grass(g, 0, 0, w, h, '#86ce52', rng(cls.length * 5)); squadOf(g, w / 2, h - 22, cls, 1, 5, h / 110, 1); });
 const face = (i, cls, r) => cnv(r * 2, r * 2, g => { g.save(); g.beginPath(); g.arc(r, r, r, 0, 7); g.clip(); g.scale(r / 32, r / 32); portrait(g, i, cls); g.restore(); });
+// the pre-battle screen only: the general's portrait with the squad type's own gear, in a gold ring
+const TYPE_BAN = { principes: { col: '#8a1a14', trim: '#d9a441', emb: 'eagle', shape: 'vex' }, triarii: { col: '#5a1410', trim: '#f4f0e4', emb: 'eagle', shape: 'vex' }, slingers: { col: '#3a7a3e', trim: '#eef3d2', emb: 'wolf', shape: 'pennant' }, cretans: { col: '#2a6a5a', trim: '#ffcc66', emb: 'wolf', shape: 'pennant' }, scouts: { col: '#5a3a8a', trim: '#f2e8ff', emb: 'horse', shape: 'swallow' }, scorpion: { col: '#b0701a', trim: '#2a1c10', emb: 'pick', shape: 'square' } };
+for (const k in TYPE_BAN) if (!BAN[k]) BAN[k] = TYPE_BAN[k];
+const PBASE = { principes: 'hastati', triarii: 'hastati', scouts: 'eques', scorpion: 'eng' };
+const PGEAR = {
+  tiro: g => { g.strokeStyle = '#8a5a30'; g.lineWidth = 3; g.beginPath(); g.moveTo(52, 12); g.lineTo(46, 58); g.stroke(); },
+  principes: g => { g.fillStyle = '#161616'; g.beginPath(); g.ellipse(32, 10, 16, 4.6, 0, 0, 7); g.fill(); g.fillStyle = '#d9a441'; g.fillRect(16, 12, 32, 2); },
+  triarii: g => { g.fillStyle = '#f4f0e4'; g.fillRect(28, 0, 8, 13); g.fillStyle = '#d8d2c0'; g.fillRect(33, 0, 3, 13); g.strokeStyle = '#a0703c'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(53, 12); g.lineTo(53, 54); g.stroke(); g.fillStyle = '#e6ebf0'; g.beginPath(); g.moveTo(53, 3); g.lineTo(50, 13); g.lineTo(56, 13); g.closePath(); g.fill(); },
+  slingers: g => { g.fillStyle = '#f2f0e8'; g.fillRect(19, 21, 26, 5); g.beginPath(); g.arc(45, 23, 3.4, 0, 7); g.fill(); g.fillRect(46, 24, 5, 8); g.strokeStyle = '#e8dcc0'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(8, 62); g.quadraticCurveTo(10, 40, 22, 46); g.stroke(); g.fillStyle = '#b4aa9a'; g.beginPath(); g.arc(8, 50, 3.6, 0, 7); g.fill(); },
+  cretans: g => { g.fillStyle = '#3a8a4a'; g.beginPath(); g.moveTo(17, 26); g.lineTo(32, 3); g.lineTo(47, 26); g.closePath(); g.fill(); g.fillStyle = '#ffcc66'; g.fillRect(17, 24, 30, 3); g.strokeStyle = '#8a5a30'; g.lineWidth = 2.6; g.beginPath(); g.arc(50, 38, 12, -1.15, 1.15); g.stroke(); g.strokeStyle = '#f4f0e4'; g.lineWidth = 1; g.beginPath(); g.moveTo(50 + Math.cos(-1.15) * 12, 38 + Math.sin(-1.15) * 12); g.lineTo(50 + Math.cos(1.15) * 12, 38 + Math.sin(1.15) * 12); g.stroke(); },
+  scouts: g => { g.fillStyle = '#3a8a4a'; g.beginPath(); g.arc(32, 27, 13.5, Math.PI, 0); g.fill(); g.fillRect(18.5, 27, 3.5, 11); g.fillRect(42, 27, 3.5, 11); g.fillStyle = '#f2c14a'; g.beginPath(); g.ellipse(45, 12, 2.6, 9, 0.7, 0, 7); g.fill(); },
+  scorpion: g => { g.strokeStyle = '#a0703c'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(8, 58); g.lineTo(50, 16); g.stroke(); g.fillStyle = '#e6ebf0'; g.beginPath(); g.moveTo(54, 12); g.lineTo(46, 14); g.lineTo(52, 20); g.closePath(); g.fill(); g.strokeStyle = '#b4bcc4'; g.lineWidth = 2; g.beginPath(); g.arc(13, 50, 5, 0, 7); g.stroke(); }
+};
+function typePortrait(g, i, cls) {
+  const base = PBASE[cls] || cls, saved = BAN[base]; if (base !== cls && BAN[cls]) BAN[base] = BAN[cls];
+  portrait(g, i, base); if (base !== cls) BAN[base] = saved;
+  if (PGEAR[cls]) PGEAR[cls](g);
+}
+const avatar = (i, cls, r) => { const c = cnv(r * 2 + 8, r * 2 + 8, g => { const m = r + 4, ri = r - 1; g.beginPath(); g.arc(m, m, r + 4, 0, 7); g.fillStyle = OL; g.fill(); g.beginPath(); g.arc(m, m, r + 1.5, 0, 7); g.fillStyle = '#d9a441'; g.fill(); g.beginPath(); g.arc(m, m, ri + 1, 0, 7); g.fillStyle = OL; g.fill(); g.save(); g.beginPath(); g.arc(m, m, ri, 0, 7); g.clip(); g.translate(m - ri, m - ri); g.scale(ri * 2 / 64, ri * 2 / 64); typePortrait(g, i, cls); g.restore(); }); c.className = 'av'; return c; };
 const icon = (kind, r, enemy) => cnv(r * 2 + 6, r * 2 + 6, g => typeIcon(g, r + 3, r + 3, r, kind, enemy));
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
 
@@ -434,7 +552,9 @@ function render() {
   fit();
   $('coins').textContent = S.coins; $('ttl').textContent = S.mode === 'barracks' ? 'Казарма' : S.title;
   $('barracks').hidden = S.mode !== 'barracks'; $('pre').hidden = S.mode !== 'pre';
+  if (S.mode === 'barracks' && tutShown && Tutor.active() && !tutBarShown) Tutor.end();
   if (S.mode === 'barracks') renderBarracks(); else renderPre();
+  armyTutBar();
 }
 function renderBarracks() {
   const strip = $('gens'); strip.innerHTML = '';
@@ -451,7 +571,12 @@ function renderBarracks() {
   $('apic').innerHTML = ''; $('apic').append(thumb(sel, 56, 56)); $('aname').textContent = d.name;
   const short = S.coins < d.cost;
   $('ainfo').textContent = st === 'cur' ? 'Сейчас у ' + GENS[gi] : st === 'lock' ? '🔒 ' + d.unlock.why : st === 'far' ? 'Сначала: ' + (TREE[d.from] ? TREE[d.from].name : 'Новобранцы') : '⊙ ' + d.cost + (short ? ' · не хватает ' + (d.cost - S.coins) : '');
-  const go = $('retrain'); go.disabled = st !== 'open' || short; go.textContent = st === 'open' && !short ? 'Переобучить' : st === 'cur' ? 'Уже обучены' : 'Нельзя';
+  const go = $('retrain'), gray = st !== 'open' || short; go.classList.toggle('dis', gray); go.setAttribute('aria-disabled', gray ? 'true' : 'false'); go.textContent = !gray ? 'Переобучить' : st === 'cur' ? 'Уже обучены' : 'Нельзя';
+  const why = $('why'); why.hidden = true; clearTimeout(whyT); whyText = '';
+  if (gray) whyText = '💡 ' + (st === 'cur' ? GENS[gi] + ' уже ведёт «' + d.name + '» — выберите другой отряд в дереве.'
+    : st === 'lock' ? d.unlock.why + ' — тогда этот отряд откроется для обучения.'
+    : st === 'far' ? 'Переобучать можно только по ветке: сначала обучите «' + (TREE[d.from] ? TREE[d.from].name : 'Новобранцы') + '», затем «' + d.name + '». Новобранцы открывают любую ветку заново.'
+    : 'Не хватает ' + (d.cost - S.coins) + ' денариев на обучение «' + d.name + '». Деньги дают победы и награды.');
 }
 function nodeBtn(id) {
   const st = nodeState(id), d = TREE[id], b = el('button', 'node ' + st + ((pick || S.army[gi]) === id ? ' sel' : '')); b.type = 'button';
@@ -480,7 +605,7 @@ function renderPre() {
   $('advice').textContent = best ? '💡 ' + TREE[best].name + ' ▲ против: ' + uniq.filter(f => verdict(best, f) > 0).map(f => ENEMY_NAME[f]).join(', ') : '💡 Обычный бой: держите строй';
   const list = $('rows'); list.innerHTML = '';
   S.army.forEach((cls, i) => {
-    const r = el('button', 'grow'); r.type = 'button'; r.append(face(i, cls, 34));
+    const r = el('button', 'grow'); r.type = 'button'; r.append(avatar(i, cls, 36));
     const mid = el('div', 'gmid'); const nm = el('div', 'gnm'); nm.append(icon(TREE_KIND[cls], 8), el('b', '', GENS[i] + ' · ' + TREE[cls].name)); mid.append(nm);
     const pros = uniq.filter(f => verdict(cls, f) > 0), cons = uniq.filter(f => verdict(cls, f) < 0);
     if (pros.length) mid.append(el('span', 'bd up', '▲ против: ' + pros.map(f => ENEMY_NAME[f]).join(', ')));
@@ -491,12 +616,31 @@ function renderPre() {
     list.append(r);
   });
 }
-$('retrain').onclick = () => { const id = pick; if (!id || nodeState(id) !== 'open') return; send({ type: 'train', gi, cls: id, cost: TREE[id].cost }); if (!EMBED) { S.coins -= TREE[id].cost; S.army[gi] = id; pick = null; render(); } };
+$('retrain').onclick = () => { const id = pick || S.army[gi]; const w = $('why'); if (!id || nodeState(id) !== 'open' || S.coins < TREE[id].cost) { if (whyText) { w.textContent = whyText; w.hidden = false; w.classList.remove('pulse'); void w.offsetWidth; w.classList.add('pulse'); clearTimeout(whyT); whyT = setTimeout(() => { w.hidden = true; }, 5000); } return; } send({ type: 'train', gi, cls: id, cost: TREE[id].cost }); if (!EMBED) { S.coins -= TREE[id].cost; S.army[gi] = id; pick = null; render(); } };
 $('info').onclick = () => openCard(pick || S.army[gi]);
 $('cclose').onclick = () => { $('card').hidden = true; };
 $('close').onclick = () => { if (S.back === 'pre' && S.mode === 'barracks') { S.mode = 'pre'; S.back = null; render(); return; } send({ type: 'close' }); };
-$('fight').onclick = () => send({ type: 'fight', army: S.army });
-addEventListener('message', e => { const m = e.data; if (e.source !== parent || !m || !m.legArmy) return; if (m.type === 'init' || m.type === 'state') { Object.assign(S, m.state); if (m.type === 'init') { gi = 0; pick = null; } render(); } });
+$('fight').onclick = () => { if (Tutor.active()) Tutor.end(); send({ type: 'fight', army: S.army }); };
+// the first time the pre-battle screen is shown it explains itself: the scouting, the four squads, the button
+let tutShown = false, tutBarShown = false;
+function armyTutBar() {   // the barracks (opened from a province): the generals, the training tree, the retraining, the denarii
+  if (tutBarShown || !S.barTut || S.mode !== 'barracks' || Tutor.active()) return; tutBarShown = true;
+  Tutor.start([
+    { text: 'Это <b>казарма</b>. Вверху четыре <b>генерала</b>, у каждого свой отряд. Коснитесь генерала, чтобы выбрать его. Коснитесь ряда, чтобы продолжить.', target: () => $('gens'), catch: true },
+    { text: 'Ниже <b>древо обучения</b>: пехота, лучники, конница, инженеры. Открытые отряды можно взять, закрытые ждут технологий и построек. Коснитесь древа, чтобы продолжить.', target: () => $('tree'), catch: true },
+    { text: 'Здесь выбранный отряд: <b>ⓘ</b> открывает его карточку, а кнопка <b>«Переобучить»</b> меняет отряд генерала за денарии.', target: () => document.querySelector('#barracks .act'), btn: true },
+    { text: 'Денарии в углу тратятся на переобучение. Их дают победы, дозоры и события.', target: () => $('coins'), btn: true, last: true }
+  ], { end: () => send({ type: 'tutDone', which: 'bar' }) });
+}
+function armyTut() {
+  if (tutShown || !S.tut || S.mode !== 'pre') return; tutShown = true;
+  Tutor.start([
+    { text: 'Это <b>разведка</b>: какие войска ждут вас в бою. Под ней совет, какой отряд против них сильнее ▲.', target: () => document.querySelector('#pre .rc'), btn: true },
+    { text: 'Ваши <b>четыре отряда</b>. Под каждым видно, против кого он силён ▲ и кто его побьёт ▼. Коснитесь отряда, чтобы переобучить его в казарме. Коснитесь списка, чтобы продолжить.', target: () => $('rows'), catch: true },
+    { text: 'Готовы? Нажмите <b>«В бой!»</b>.', target: () => $('fight'), real: true, last: true }
+  ], { end: () => send({ type: 'tutDone' }) });
+}
+addEventListener('message', e => { const m = e.data; if (e.source !== parent || !m || !m.legArmy) return; if (m.type === 'init' || m.type === 'state') { Object.assign(S, m.state); if (m.type === 'init') { gi = 0; pick = null; } render(); armyTut(); } });
 (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('400 20px "Lilita One"'), document.fonts.load('800 13px "Alegreya Sans"')]).catch(() => 0) : Promise.resolve()).then(() => { fit(); render(); send({ type: 'ready' }); });
 
 </script>
