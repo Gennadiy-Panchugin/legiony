@@ -9,6 +9,7 @@ const ban = between(cas, 'const BAN = {', 'const REFILL');
 const portraits = between(cas, 'function emblem(g, k, cx, cy, z, col) {', 'function paintRail() {').replace(/\bbanner\(/g, 'cbanner(');
 const unitsSrc = fs.readFileSync(path.join('..', 'toon2d', 'units.js'), 'utf8');
 const unitsArt = between(unitsSrc, '// ---------------------------------------------------------------- the new soldiers', '// ---------------------------------------------------------------- shared phone chrome');
+const warSrc = fs.readFileSync(path.join(__dirname, 'war.js'), 'utf8'), tutorUi = between(warSrc, '// ==== tutor-ui begin', '// ==== tutor-ui end');
 const data = fs.readFileSync(path.join(__dirname, 'roster-data.js'), 'utf8'), app = fs.readFileSync(path.join(__dirname, 'army.js'), 'utf8');
 const html = `<title>Казарма</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +33,7 @@ const html = `<title>Казарма</title>
   .gen { position: relative; height: 110px; border-radius: 16px; background: #4a2e18; border: 2.5px solid var(--ol); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; }
   .gen.on { background: #6a4626; border: 4px solid #ffcc33; transform: translateY(-3px); }
   .gen canvas:first-child { border-radius: 50%; border: 3px solid var(--ol); } .gen canvas:nth-child(2) { position: absolute; left: 50%; top: 38px; margin-left: 10px; }
+  .grow > canvas.av { border: 0; border-radius: 0; }
   .gen b { font: 400 17px var(--display); color: #ffe6a8; } .gen small { font: 800 12px var(--body); color: var(--muted); }
   .tree { flex: 1; overflow-y: auto; padding: 10px 12px 6px; display: flex; flex-direction: column; gap: 6px; }
   .root { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 16px; background: #5a3a20; border: 2.5px solid var(--ol); }
@@ -50,7 +52,9 @@ const html = `<title>Казарма</title>
   .act { margin: 6px 8px 8px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; border-radius: 18px; background: rgba(40,24,14,.94); border: 3px solid var(--gold); flex: none; }
   .act canvas { border-radius: 12px; border: 2px solid var(--ol); } .act .t { flex: 1; min-width: 0; } .act .t b { display: block; font: 400 20px var(--display); color: #ffe6a8; } .act .t span { font: 800 14px var(--body); color: var(--muted); }
   .yb { height: 58px; padding: 0 18px; border-radius: 18px; border: 3.4px solid var(--ol); background: #ffc93c; box-shadow: 0 5px 0 #7a4a1c; font: 400 21px var(--display); color: #3a1e08; }
-  .yb:disabled { filter: grayscale(.9); opacity: .6; cursor: not-allowed; }
+  .yb:disabled, .yb.dis { filter: grayscale(.9); opacity: .6; cursor: not-allowed; }
+  .why { margin: 6px 8px 0; padding: 9px 12px; border-radius: 14px; background: rgba(255,230,168,.14); border: 2px solid #f2c14a; color: #ffe6a8; font: 700 15px var(--body); line-height: 1.3; flex: none; }
+  .why[hidden] { display: none; } .why.pulse { animation: whyp .6s; } @keyframes whyp { 0%, 100% { background: rgba(255,230,168,.14); } 40% { background: rgba(242,193,74,.5); } }
   .ib { width: 48px; height: 48px; border-radius: 14px; background: #5a3a20; border: 2.5px solid var(--ol); font: 400 22px var(--display); color: #ffe6a8; }
   .card { position: absolute; inset: 0; background: rgba(10,5,2,.6); display: flex; align-items: flex-end; z-index: 5; }
   .sheet { position: relative; width: 100%; max-height: 82%; overflow-y: auto; padding: 18px 16px 22px; border-radius: 28px 28px 0 0; background: linear-gradient(#5a3a20, #3a2414); border-top: 3px solid var(--gold); }
@@ -81,6 +85,7 @@ const html = `<title>Казарма</title>
   <section id="barracks" style="display:flex;flex-direction:column;flex:1;min-height:0">
     <div class="gens" id="gens"></div>
     <div class="tree" id="tree"></div>
+    <div class="why" id="why" role="status" hidden></div>
     <div class="act"><span id="apic"></span><div class="t"><b id="aname"></b><span id="ainfo"></span></div><button class="ib" id="info" type="button" aria-label="Карточка отряда">ⓘ</button><button class="yb" id="retrain" type="button">Переобучить</button></div>
   </section>
   <section class="pre" id="pre" hidden>
@@ -97,6 +102,7 @@ ${ban}
 ${portraits}
 ${unitsArt}
 ${data}
+${tutorUi}
 ${app}
 </script>
 `;

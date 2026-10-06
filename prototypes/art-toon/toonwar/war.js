@@ -1,6 +1,101 @@
 // ---------------------------------------------------------------- board
-const W = 540, H = 960, BAR = 92, DPR = Math.min(2, window.devicePixelRatio || 1), VCY = (H - BAR) / 2 + 30;
+const W = 540, H = 960, BAR = 68, DPR = Math.min(2, window.devicePixelRatio || 1), VCY = (H - BAR) / 2 + 30;
 const $ = id => document.getElementById(id);
+// ==== tutor-ui begin
+// The tutorial coach shared by the battle and the pre-battle screen. Look and feel are those of the map tutorial of the main game:
+// a dark bubble with a gold edge and the «Обучение · 1 из 5» line, the same pointing hand, a dimmed screen with a spotlight on the element it talks about.
+// A step: { text, target: () => element | box, points: () => [{ x, y, r, world }], point: [x, y], catch, btn, last, real, done, skipIf, onEnter, onLeave }
+//   catch: tapping the lit zone only moves on (nothing is activated); btn: «Понятно» and the rest of the screen is locked; done: moves on by itself when it returns true;
+//   real: the lit element is really pressable (the last step); points: rings round map spots, the hand visits them one by one (hooks.focus pans the map to the next).
+const Tutor = (() => {
+  const CSS = `
+  #tutor { position: absolute; inset: 0; z-index: 60; pointer-events: none; font-family: 'Alegreya Sans', 'Segoe UI', Roboto, sans-serif; }
+  #tutor [hidden] { display: none !important; }
+  #tutor .td-dim { position: absolute; inset: 0; background: rgba(10,6,2,.6); }
+  #tutor .td-ring { position: absolute; border: 3px solid #d9a441; box-shadow: 0 0 14px #d9a441, 0 0 0 1600px rgba(10,6,2,.7); }
+  #tutor .td-pt.cur { border-color: #fff3a0; box-shadow: 0 0 22px rgba(255,243,160,.95); }
+  #tutor .td-pt { position: absolute; border: 3px dashed #ffd76a; border-radius: 50%; box-shadow: 0 0 14px rgba(255,215,106,.8); animation: tdpt .9s ease-in-out infinite alternate; }
+  @keyframes tdpt { from { transform: scale(.94); } to { transform: scale(1.06); } }
+  #tutor .td-block { position: absolute; inset: 0; pointer-events: auto; }
+  #tutor .td-hand { position: absolute; width: 34px; height: 50px; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); animation: tdup .8s ease-in-out infinite alternate; }
+  #tutor .td-hand svg { width: 100%; height: 100%; display: block; } #tutor .td-hand.dn svg { transform: scaleY(-1); } #tutor .td-hand.dn { animation-name: tddn; }
+  @keyframes tdup { from { transform: translateY(10px); } to { transform: translateY(0); } } @keyframes tddn { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+  #tutor .td-bub { position: absolute; left: 12px; right: 12px; top: 78px; padding: 12px 14px; border-radius: 12px; background: rgba(30,25,19,.96); border: 1px solid #d9a441; box-shadow: 0 10px 26px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; animation: tdpop .35s cubic-bezier(.2,1.3,.4,1); }
+  @keyframes tdpop { from { opacity: 0; transform: translateY(16px) scale(.94); } }
+  #tutor .td-eb { color: #a99c82; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  #tutor .td-bub p { margin: 0; font-size: 15px; line-height: 1.35; color: #efe6d2; }
+  #tutor .td-row { display: flex; justify-content: flex-end; gap: 8px; }
+  #tutor .td-btn { font: 700 15px/1 'Alegreya Sans', 'Segoe UI', sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #17140f; background: #d9a441; border: 1px solid #d9a441; border-radius: 10px; min-width: 150px; min-height: 48px; padding: 12px 22px; cursor: pointer; }
+  #tutor .td-btn.ghost { background: transparent; color: #efe6d2; border-color: #3b3226; }
+  @media (prefers-reduced-motion: reduce) { #tutor .td-hand, #tutor .td-pt { animation: none; } }`;
+  const HAND = '<svg viewBox="0 0 24 36" aria-hidden="true"><path d="M8 2l4-1v16l5-2 4 1 4 2 1 11c-4 8-12 8-16 6L1 27l-2-7 5-1z" fill="#ffe2b0" stroke="#28190a" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  let el = null, board = null, T = null;
+  const q = s => el.querySelector(s);
+  function build() {
+    if (el) return;
+    const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+    board = document.getElementById('board') || document.body;
+    el = document.createElement('div'); el.id = 'tutor';
+    el.innerHTML = '<div class="td-dim" hidden></div><div class="td-pts"></div><div class="td-ring" hidden></div><div class="td-block" hidden></div><div class="td-hand" hidden>' + HAND + '</div>'
+      + '<div class="td-bub" hidden><span class="td-eb"></span><p></p><div class="td-row"><button type="button" class="td-btn" data-a="ok">Понятно</button></div></div>';
+    board.appendChild(el);
+    q('.td-bub').addEventListener('click', e => { if (e.target.dataset && e.target.dataset.a === 'ok') next(); });
+    q('.td-block').addEventListener('click', e => {
+      if (!T) return; const st = T.steps[T.i], bd = board.getBoundingClientRect(), k = bd.width / 540, x = (e.clientX - bd.left) / k, y = (e.clientY - bd.top) / k;
+      if ((st.catch || st.real) && T.box) { const b = T.box; if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) { if (st.real) { const tg = st.target && st.target(); if (tg && tg.click) tg.click(); } else next(); } }
+      else if (st.points && T.list && T.list.length) {   // a touch on the lit spot: on to the next one, after the last one the tutorial is over
+        const c = T.list[T.pi]; if (!c) return; const r = Math.max(34, c.r), dx = (x - c.x) / r, dy = (y - c.y) / (r * 0.7);
+        if (dx * dx + dy * dy <= 1.5) { if (T.pi + 1 >= T.list.length) next(); else { T.pi++; if (T.hooks.focus && T.list[T.pi].world) T.hooks.focus(T.list[T.pi].world); } }
+      }
+    });
+  }
+  function boxOf(tg) {   // an element or a ready box -> a box in the 540x960 board's pixels
+    if (!tg) return null; if (tg.getBoundingClientRect) { if (tg.hidden || tg.offsetParent === null) return null; const bd = board.getBoundingClientRect(), r = tg.getBoundingClientRect(), k = bd.width / 540; return { x: (r.left - bd.left) / k, y: (r.top - bd.top) / k, w: r.width / k, h: r.height / k, round: tg.id && tg.id.startsWith('rb') }; } return tg;
+  }
+  function place(hand, box, pad) {   // the hand comes from below and points up at a target in the upper half, otherwise from above and points down
+    const below = box.y + box.h / 2 < 480; hand.className = 'td-hand' + (below ? '' : ' dn'); hand.style.left = (box.x + box.w / 2 - 14) + 'px'; hand.style.top = (below ? box.y + box.h + pad - 3 : box.y - pad - 50 + 3) + 'px'; hand.hidden = false;
+  }
+  function render() {
+    const st = T.steps[T.i]; q('.td-eb').textContent = 'Обучение · ' + (T.i + 1) + ' из ' + T.steps.length; q('.td-bub p').innerHTML = st.text;
+    q('[data-a=ok]').hidden = !st.btn; q('.td-bub').hidden = false; T.pi = 0; T.pt = performance.now();
+    if (st.onEnter) st.onEnter(); if (T.hooks.pause) T.hooks.pause(!st.real);
+  }
+  function next() {
+    if (!T) return; const old = T.steps[T.i]; if (old && old.onLeave) old.onLeave();
+    T.i++; while (T.i < T.steps.length && T.steps[T.i].skipIf && T.steps[T.i].skipIf()) T.i++;
+    if (T.i >= T.steps.length) return end(); render();
+  }
+  function end() {
+    if (!T) return; const old = T.steps[T.i]; if (old && old.onLeave) old.onLeave(); const h = T.hooks; T = null;
+    for (const s of ['.td-dim', '.td-ring', '.td-block', '.td-hand', '.td-bub']) q(s).hidden = true; q('.td-pts').innerHTML = '';
+    if (h.pause) h.pause(false); if (h.end) h.end();
+  }
+  function frame() {
+    if (!T) return; requestAnimationFrame(frame); const st = T.steps[T.i]; if (!st) return;
+    if (st.done && st.done()) { next(); return; }
+    const ring = q('.td-ring'), hand = q('.td-hand'), dim = q('.td-dim'), pts = q('.td-pts'), pad = 6;
+    let box = boxOf(st.target && st.target()), list = st.points ? st.points() : null, spot = null; T.list = list;
+    if (!box && st.point) box = { x: st.point[0] - 24, y: st.point[1] - 24, w: 48, h: 48 };
+    T.box = box;
+    if (st.target && box) { ring.style.left = (box.x - pad) + 'px'; ring.style.top = (box.y - pad) + 'px'; ring.style.width = (box.w + pad * 2) + 'px'; ring.style.height = (box.h + pad * 2) + 'px'; ring.style.borderRadius = box.round ? '50%' : '16px'; ring.hidden = false; dim.hidden = true; }
+    else { ring.hidden = true; dim.hidden = false; dim.style.background = st.point ? 'rgba(10,6,2,.38)' : list ? 'rgba(10,6,2,.5)' : 'rgba(10,6,2,.6)'; }
+    if (list && list.length) {   // map spots: a ring on each, the hand on one of them, moving on every 2.6 s while the map pans to it
+      while (pts.children.length < list.length) { const d = document.createElement('div'); d.className = 'td-pt'; pts.appendChild(d); }
+      [...pts.children].forEach((d, i) => { d.classList.toggle('cur', i === T.pi); const p = list[i]; if (!p || p.x < -40 || p.x > 580 || p.y < 60 || p.y > 900) { d.hidden = true; return; } d.hidden = false; const r = Math.max(30, p.r); d.style.left = (p.x - r) + 'px'; d.style.top = (p.y - r * 0.6) + 'px'; d.style.width = (r * 2) + 'px'; d.style.height = (r * 1.2) + 'px'; d.style.borderRadius = '50%'; });
+      const c = list[T.pi]; if (c && c.x > -40 && c.x < 580 && c.y > 60 && c.y < 900) spot = { x: c.x - 6, y: c.y - 40, w: 12, h: 12 };
+    }
+    const hb = spot || (st.target || st.point ? box : null);
+    if (hb) place(hand, hb, pad); else hand.hidden = true;
+    q('.td-block').hidden = !(st.catch || st.real || st.btn); q('[data-a=ok]').hidden = !st.btn || !!(list && list.length);
+    const bub = q('.td-bub'), lo = hb && hb.y < 330; bub.style.top = lo ? 'auto' : '78px'; bub.style.bottom = lo ? '150px' : 'auto';
+  }
+  function start(steps, hooks) {
+    build(); steps = steps.filter(s => !(s.skipIf && s.skipIf())); if (!steps.length) return;
+    T = { i: -1, steps, hooks: hooks || {}, box: null, pi: 0, pt: 0 }; next(); requestAnimationFrame(frame);
+  }
+  return { start, end, active: () => !!T, tick: frame };
+})();
+// ==== tutor-ui end
 const cv = $('cv'), ctx = cv.getContext('2d'); cv.width = W * DPR; cv.height = H * DPR;
 function fit() { const k = Math.max(0.3, Math.min((innerWidth - 32) / W, (innerHeight - 32) / H, 1.2)); $('board').style.transform = 'scale(' + k + ')'; $('fit').style.width = W * k + 'px'; $('fit').style.height = H * k + 'px'; }
 addEventListener('resize', fit); addEventListener('load', fit); fit();
@@ -144,6 +239,8 @@ function useBoost(s, idx, quiet, tx, ty) {
       for (const h of hit) { h.q.pend += 1.6; h.q.hurt = 0.4; bleed(h.q); raise(h.q.zone, h.q, 14); } G.bolts.push({ x0: s.x, y0: s.y - 24, x1: ex, y1: ey - 24, t: 0 }); SND.play('crash', s.x); }
     else { G.rains.push({ x: tx, y: ty, t: 0, dur: 3, r: 72 }); SND.play('volley', tx); }
   } else {
+    if (s.carry && (b.id === 'wedge' || b.id === 'gallop')) { if (!quiet) say('С тараном так не побежишь'); return false; }
+    if (b.id === 'dropram') { if (typeof ramDrop === 'function') ramDrop(s); if (!quiet) say('Таран брошен: его может поднять любой пеший отряд'); return true; }
     if (b.id === 'wedge') { s.wedgeT = d.dur; s.wedged = false; if (s.cls === 'eques') s.travel = 999; SND.play('wedge', s.x); }
     else if (b.id === 'pila') { const e = G.sq.filter(q => q.alive && q.side === 2 && !q.hiddenA && dist(q, s) < 150).sort((p, q) => dist(p, s) - dist(q, s))[0];
       if (!e) { if (!quiet) say('Пилумы летят на 150 шагов — подойдите ближе'); return false; }
@@ -167,14 +264,15 @@ function cmd(s, tx, ty, quiet) {
   const p = findPath(s.x, s.y, w[0], w[1], 1); if (!p) { if (!quiet) say('Путь закрыт'); return false; }
   s.path = p; if (!quiet) SND.play('order'); return true;
 }
-function attack(s, foe, quiet) { s.work = null; s.atk = foe; s.atkT = 0; const p = findPath(s.x, s.y, foe.x, foe.y, s.side); s.path = p || []; if (!p && !quiet) say('К ним не подойти'); return !!p; }
+const noCav = (a, t) => a.kind === CAV && !a.range && typeof STEEP !== 'undefined' && !!STEEP[cellOf(t.x, t.y)];
+function attack(s, foe, quiet) { if (noCav(s, foe)) { s.atk = null; s.path = []; if (!quiet) say('Конница не заберётся на крутой бугор — туда ударят только пешие и стрелки'); return false; } s.work = null; s.atk = foe; s.atkT = 0; const p = findPath(s.x, s.y, foe.x, foe.y, s.side); s.path = p || []; if (!p && !quiet) say('К ним не подойти'); return !!p; }
 
 // ---------------------------------------------------------------- the defenders: one alarm per post, patrols, leashes
 function raise(zone, who, secs) { if (!zone) return; const was = (G.alarm[zone] || 0) > G.t; G.alarm[zone] = Math.max(G.alarm[zone] || 0, G.t + secs); if (!was) { G.warn.push({ x: who.x, y: who.y, t: 2.5 }); SND.play('alarm', who.x); } }
 function think(s, dt) {
   s.thinkT -= dt; if (s.thinkT > 0 || s.ai === 'player') return; s.thinkT = 0.6;
   const foes = alive(1); if (!foes.length) return;
-  let tgt = null, bd = 1e9; for (const f of foes) { if (inCamp(f)) continue; const d = dist(s, f); if (d < bd) { bd = d; tgt = f; } }
+  let tgt = null, bd = 1e9; for (const f of foes) { if (inCamp(f) || noCav(s, f)) continue; const d = dist(s, f); if (d < bd) { bd = d; tgt = f; } }
   const [hx, hy] = s.home, alarm = (G.alarm[s.zone] || 0) > G.t, aggro = alarm ? 320 : 180, leash = alarm ? 460 : 300;
   if (tgt && bd < aggro) raise(s.zone, s, 12);
   if (tgt && bd < aggro && Math.hypot(tgt.x - hx, tgt.y - hy) < leash) { s.atk = tgt; s.pauseT = 0; }
@@ -187,14 +285,15 @@ function think(s, dt) {
 }
 function pursue(s, dt) {
   if (s.atk && !s.atk.alive) { s.atk = null; s.path = []; }
+  if (s.atk && noCav(s, s.atk)) { s.atk = null; s.path = []; }
   if (!s.atk) return; s.atkT -= dt; if (s.atkT > 0) return; s.atkT = 0.5;
   const t = s.atk, d = dist(s, t), rr0 = s.range ? s.range * (hAt(s.x, s.y) > hAt(t.x, t.y) + 0.08 ? 1.35 : 1) * 0.9 : MELEE - 8;
   if (d <= rr0) { s.path = []; return; }
   s.path = findPath(s.x, s.y, t.x, t.y, s.side) || [];
 }
 function step(raw) {
-  if (G.over || !started) return;
-  const dt = raw * GSPEED * (G.sel && G.sel.alive ? SLOW : 1); G.t += dt;
+  if (G.over || !started || G.paused) return;
+  const dt = raw * GSPEED * (G.sel && G.sel.alive || G.bstTgt ? SLOW : 1); G.t += dt; if (G.cryT > 0) G.cryT -= dt; if (G.wallT > 0) G.wallT -= dt;
   const live = alive();
   for (const p of G.points) {
     const mine = live.filter(q => q.side === 1 && !q.moving && Math.hypot(q.x - p.x, q.y - p.y) < p.r), hostile = live.some(e => e.side === 2 && Math.hypot(e.x - p.x, e.y - p.y) < p.r + 40);
@@ -219,7 +318,7 @@ function step(raw) {
     if (s.stunT > 0 || s.cls === 'triarii' && s.sk > 0) { s.moving = false; continue; }
     s.moving = s.path.length > 0; if (!s.moving) continue;
     const [tx, ty] = s.path[0], dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy);
-    const sp = s.speed / MULc(cellOf(s.x, s.y)) * (s.sk > 0 && s.cls === 'hastati' ? 0.5 : 1) * (s.sk > 0 && s.cls === 'eques' ? 1.8 : 1) * (s.wedgeT > 0 ? 1.35 : 1) * (s.slowT > 0 ? 0.4 : 1);
+    const sp = s.speed / MULc(cellOf(s.x, s.y)) * (s.sk > 0 && s.cls === 'hastati' ? 0.5 : 1) * (s.sk > 0 && s.cls === 'eques' ? 1.8 : 1) * (s.wedgeT > 0 ? 1.35 : 1) * (s.slowT > 0 ? 0.4 : 1) * (G.cryT > 0 && s.side === 1 ? 1.25 : 1) * (s.carry ? 0.65 : 1);
     const mv = Math.min(d, sp * dt);
     if (d > 0.01) { s.x += dx / d * mv; s.y += dy / d * mv; if (Math.abs(dx) > 1) s.face = dx < 0 ? -1 : 1; s.travel += mv; }
     if (d - mv < 3) s.path.shift();
@@ -232,7 +331,8 @@ function step(raw) {
     const mx = q.x + ux * push, my = q.y + uy * push, n2 = cellOf(mx, my); if (pass(n2, q.side) && canStep(qc, n2)) { q.x = mx; q.y = my; }
   }
   for (const s of live) if (s.work && !s.path.length) {
-    const site = s.work.site; if (site.open || Math.hypot(s.x - site.stand[0], s.y - site.stand[1]) > 46) { s.work = null; continue; }
+    const site = s.work.site; if (s.work.fetch && typeof ramFetch === 'function') { ramFetch(s); continue; }
+    if (site.open || Math.hypot(s.x - site.stand[0], s.y - site.stand[1]) > 46) { s.work = null; continue; }
     site.prog += dt * (s.sk > 0 ? 3 : 1); s.clash -= dt;
     if (s.clash <= 0) { s.clash = 0.35; G.fx.push({ x: site === OB ? OB.x + (Math.random() - .5) * 90 : BR.x + (Math.random() - .5) * 30, y: site === OB ? OB.y : BR.y0 + 40 + (Math.random() - .5) * 60, t: 0.3 }); SND.play('tool', s.x); }
     if (site.prog >= site.need) { site.open = true; s.work = null; SND.play('crash', s.x); G.fx.push({ x: s.x, y: s.y - 30, t: 0.8, big: true }); say(site === OB ? 'Баррикада разобрана, перевал открыт' : 'Мост построен! Можно перейти реку у левого хребта'); if (G.sel) paintOverlay(G.sel); }
@@ -243,7 +343,7 @@ function step(raw) {
   for (const a of live) {
     a.fighting = false; if (a.moving || a.work || a.stunT > 0 || CLS[a.cls].deploy && a.stillT < CLS[a.cls].deploy) continue;
     let t = null, bd = 1e9;
-    for (const e of live) { if (e.side === a.side || e.hiddenA) continue; const d = dist(a, e), R = a.range ? a.range * (hAt(a.x, a.y) > hAt(e.x, e.y) + 0.08 ? 1.35 : 1) : MELEE; if (d > R || d >= bd) continue; bd = d; t = e; }
+    for (const e of live) { if (e.side === a.side || e.hiddenA || noCav(a, e)) continue; const d = dist(a, e), R = a.range ? a.range * (hAt(a.x, a.y) > hAt(e.x, e.y) + 0.08 ? 1.35 : 1) : MELEE; if (d > R || d >= bd) continue; bd = d; t = e; }
     if (!t) continue;
     a.fighting = true; a.face = t.x < a.x - 1 ? -1 : t.x > a.x + 1 ? 1 : a.face;
     if (CLS[a.cls].first && !a.revealed) { a.revealed = true; a.hiddenA = false; a.firstT = 2; G.warn.push({ x: a.x, y: a.y, t: 2.5 }); say('Засада!'); }
@@ -261,6 +361,8 @@ function step(raw) {
     v *= dt2.def || 1; if (t.cls === 'tiro' && t.sk > 0) v *= 0.75;
     if (t.cls === 'triarii' && t.sk > 0 && a.kind === CAV) { v *= 0.3; a.slowT = 2; a.travel = 0; }
     if (dt2.front) { const fx = t.atk ? t.atk.x - t.x : 0, fy = t.atk ? t.atk.y - t.y : 1, fl = Math.hypot(fx, fy) || 1, ax = a.x - t.x, ay = a.y - t.y, al = Math.hypot(ax, ay) || 1; v *= (fx * ax + fy * ay) / fl / al > 0.5 ? dt2.front : 1.3; }
+    if (t.side === 1 && G.wallT > 0) v *= 0.7;
+    if (t.carry) v *= 1.2;
     t.pend += v; t.hurt = 0.25; if (t.side === 2) raise(t.zone, t, 14);
     a.clash -= dt; if (a.clash <= 0) { a.clash = ranged ? 0.5 : 0.35; bleed(t); SND.hit(a); if (ranged) G.volleys.push({ x: a.x, y: a.y - 20, tx: t.x, ty: t.y - 14, t: 0, side: a.side }); else G.fx.push({ x: (a.x + t.x) / 2 + (Math.random() - .5) * 16, y: (a.y + t.y) / 2 - 10, t: 0.3 }); }
   }
@@ -290,7 +392,7 @@ function die(s) {
 }
 const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 const EMBED = window.name === 'legwar';
-if (EMBED) { addEventListener('message', e => { const m = e.data; if (e.source === parent && m && m.legWar === 'init' && Array.isArray(m.slots)) { slots = m.slots.slice(0, 4).map(c => CLS[c] ? c : 'tiro'); renderSlots(); newBattle(); } }); setTimeout(() => parent.postMessage({ legWar: 'ready' }, '*'), 0); }
+if (EMBED) { addEventListener('message', e => { const m = e.data; if (e.source === parent && m && m.legWar === 'init' && Array.isArray(m.slots)) { slots = m.slots.slice(0, 4).map(c => CLS[c] ? c : 'tiro'); if (m.boosts) STOCK = Object.assign({ cry: 0, reinf: 0, wall: 0, merc: 0, pont: 0 }, m.boosts); TUT_WANT = !!m.tut; renderSlots(); newBattle(); tutAuto(); } }); setTimeout(() => parent.postMessage({ legWar: 'ready' }, '*'), 0); }
 function report(win, surrendered) { parent.postMessage({ legWar: 'end', win, surrendered: !!surrendered, t: G.t, kills: G.kills, lost: G.lost, flags: G.points.filter(p => p.owner === 1).length }, '*'); }
 function checkEnd() {
   let win = 0, why = '';
@@ -411,31 +513,77 @@ function draw(t) {
 
 // ---------------------------------------------------------------- the interface
 let railPainted = null, boostSel = null;
-function paintRail() { G.rome.forEach((s, i) => { const g = $('rbc' + i).getContext('2d'); g.clearRect(0, 0, 64, 64); portrait(g, i, s.cls); typeIcon(g, 52, 52, 9, TREE_KIND[s.cls] || 'INF'); }); }
+function paintRail() { G.rome.forEach((s, i) => { const g = $('rbc' + i).getContext('2d'); g.clearRect(0, 0, 64, 64); portrait(g, i, s.cls); const b = $('rb' + i); let k = b.querySelector('.rk'); if (!k) { k = document.createElement('canvas'); k.className = 'rk'; k.width = k.height = 52; b.appendChild(k); } const kg = k.getContext('2d'); kg.clearRect(0, 0, 52, 52); typeIcon(kg, 26, 26, 17, TREE_KIND[s.cls] || 'INF'); }); }
 function hud() {
   const caps = G.points.filter(p => p.owner === 1).length, foes = G.sq.filter(s => s.alive && s.side === 2).length;
   $('clock').textContent = clock(G.t); $('cFlags').textContent = '⚑ ' + caps + '/3'; $('cFoes').textContent = '⚔ ' + foes; $('cRes').textContent = '+ ' + G.reserve;
   SND.slow(!!G.sel); SND.level(G.sq.filter(s => s.alive && s.fighting).length / 3);
-  const ph = $('phase'); ph.hidden = !G.sel && !G.tgt;
-  ph.textContent = G.tgt ? '🎯 Куда «' + BOOST[G.tgt.s.boosts[G.tgt.idx].id].name + '»?' : G.sel ? '⏳ ' + G.sel.name + ' · ' + CLS[G.sel.cls].name.toLowerCase() + ' · куда идти?' : '';
+  const ph = $('phase'); ph.hidden = !G.sel && !G.tgt && !G.bstTgt;
+  ph.textContent = G.bstTgt ? '🏗 Куда послать строителей? Коснитесь преграды' : G.tgt ? '🎯 Куда «' + BOOST[G.tgt.s.boosts[G.tgt.idx].id].name + '»?' : G.sel ? '⏳ ' + G.sel.name + ' · ' + CLS[G.sel.cls].name.toLowerCase() + ' · куда идти?' : '';
   uiCards();
 }
+// ---- the boosts the player bought (the stock comes from the main game); a map file may narrow BOOST_ALLOW
+let STOCK = window.name.startsWith('legwar') ? null : { cry: 2, reinf: 1, wall: 2, merc: 1, pont: 2 }, BOOST_ALLOW = ['cry', 'reinf', 'wall', 'merc', 'pont'], trayKey = '', fxKey = '';
+const SV = p => '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>';
+const BST = {
+  cry: { name: 'Клич', full: 'Боевой клич', ico: SV('<path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="currentColor"/>'), act: 'cryT' },
+  reinf: { name: 'Резерв', full: 'Подкрепление', ico: SV('<path d="M12 3l7 8h-4v9H9v-9H5z" fill="currentColor"/><path d="M5 21h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>') },
+  wall: { name: 'Щиты', full: 'Стена щитов', ico: SV('<path d="M12 2.5l8 3.2v5.6c0 5.2-3.4 8.6-8 10.2-4.6-1.6-8-5-8-10.2V5.7z" fill="currentColor"/>'), act: 'wallT' },
+  merc: { name: 'Наёмники', full: 'Наёмники', ico: SV('<path d="M2.5 20.5L12 4l9.5 16.5z" fill="currentColor"/><path d="M12 20.5v-6l-2.6 6" fill="none" stroke="#17140f" stroke-width="1.6"/>') },
+  pont: { name: 'Строители', full: 'Вольные строители', ico: SV('<path d="M3 15h18M5 15v5M19 15v5M7 15V9h10v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>') }
+};
+const BB = document.querySelector('.bbar'), trayOn = () => !!(STOCK && BOOST_ALLOW.length) && !G.over;
+function paintTray() {
+  const on = trayOn(); $('tray').hidden = !on; BB.classList.toggle('tr', on);
+  const act = id => { const k = BST[id].act; return k && G[k] > 0 ? Math.ceil(G[k]) : 0; };
+  const key = on ? BOOST_ALLOW.map(id => id + ':' + (STOCK[id] || 0) + ':' + act(id)).join() : '';
+  if (key !== trayKey) { trayKey = key; $('tray').innerHTML = on ? BOOST_ALLOW.map(id => { const a = act(id), n = STOCK[id] || 0; return '<button class="bl' + (a ? ' on' : n <= 0 ? ' zero' : '') + '" type="button" data-b="' + id + '">' + BST[id].ico + '<b>' + BST[id].name + '</b><em>' + (a ? a + ' с' : n) + '</em></button>'; }).join('') : ''; }
+  let fk = ''; for (const id of ['cry', 'wall']) if (act(id)) fk += id + act(id) + ',';
+  if (fk !== fxKey) { fxKey = fk; $('fxc').innerHTML = ['cry', 'wall'].filter(act).map(id => '<span class="fxc">' + BST[id].ico + act(id) + ' с</span>').join(''); $('glow').style.boxShadow = G.cryT > 0 ? 'inset 0 0 70px 6px rgba(242,193,74,.35)' : G.wallT > 0 ? 'inset 0 0 70px 6px rgba(90,140,255,.35)' : ''; }
+}
+function useBst(id) {
+  if (G.over || !started || !STOCK) return; const B = BST[id], n = STOCK[id] || 0;
+  if (id === 'merc') { say('Наёмники придут в одном из следующих обновлений боя'); return; }
+  if (id === 'pont' && G.bstTgt) { G.bstTgt = null; say('Отменено'); paintTray(); return; }
+  if (n <= 0) { say('«' + B.full + '»: запаса нет — купите в магазине или изучите в библиотеке'); return; }
+  if (B.act && G[B.act] > 0) { say('«' + B.full + '» уже действует'); return; }
+  if (id === 'cry') { G.cryT = 15; say('Боевой клич: войска быстрее на 25% 15 с'); SND.play('rush'); }
+  else if (id === 'wall') { G.wallT = 15; say('Стена щитов: урон по вам меньше на 30% 15 с'); SND.play('shield'); }
+  else if (id === 'reinf') { G.reserve += 12; say('Подкрепление: +12 в резерв'); SND.play('recruit'); }
+  else if (id === 'pont') {
+    if (G.bstTgt) { G.bstTgt = null; say('Отменено'); paintTray(); return; }
+    const r = typeof bstPont === 'function' ? bstPont() : false;
+    if (r === 'pick') { G.bstTgt = 'pont'; G.sel = null; G.tgt = null; overlayOn = false; say('Вольные строители: коснитесь преграды'); SND.play('select'); paintTray(); return; }
+    if (!r) return;
+  }
+  spendBst(id);
+}
+function spendBst(id) {
+  STOCK[id] = Math.max(0, (STOCK[id] || 0) - 1); for (const q of alive(1)) G.fx.push({ x: q.x, y: q.y, t: 0.6, big: true });
+  if (EMBED) parent.postMessage({ legWar: 'boost', id }, '*');
+  paintTray();
+}
+$('tray').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (b) useBst(b.dataset.b); });
+function fitChip(el) { const sp = el.querySelector('span'), b = el.querySelector('b'); if (!sp || !b) return; let px = 17; b.style.fontSize = px + 'px'; while (sp.scrollWidth > sp.clientWidth + 1 && px > 10) { px--; b.style.fontSize = px + 'px'; } }
 function uiCards() {
-  if (railPainted !== G) { railPainted = G; paintRail(); boostSel = null; }
+  if (railPainted !== G) { railPainted = G; paintRail(); boostSel = null; trayKey = fxKey = ''; }
   G.rome.forEach((s, i) => { const b = $('rb' + i), f = Math.max(0, s.n) / s.max; b.className = 'rb' + (G.sel === s ? ' sel' : '') + (!s.alive ? ' dead' : ''); b.style.setProperty('--hp', Math.round(f * 100)); b.style.setProperty('--c', f > 0.5 ? '#7ee05a' : f > 0.25 ? '#ffcc33' : '#ff5a4a'); });
   const sel = G.sel && G.sel.alive ? G.sel : null, bar = $('boosts');
-  $('bhint').hidden = !!sel;
+  paintTray(); $('bhint').hidden = !!sel || trayOn();
   if (!sel) { if (boostSel !== null) { bar.hidden = true; bar.innerHTML = ''; boostSel = null; } return; }
   if (boostSel !== sel) {
     boostSel = sel; bar.hidden = false;
-    bar.innerHTML = sel.boosts.length ? sel.boosts.map((b, i) => '<button class="bb" id="bb' + i + '" type="button"></button>').join('') : '<span class="nob">Нет приказов</span>';
+    bar.innerHTML = '<div class="av"><canvas id="avc" width="64" height="64"></canvas>' + sel.name + '<small>' + CLS[sel.cls].name + '</small></div>' + (sel.boosts.length ? sel.boosts.map((b, i) => '<button class="chipo" id="bb' + i + '" type="button"></button>').join('') : '<span class="nob" style="flex:1;padding:14px">Нет приказов</span>');
+    const ix = G.rome.indexOf(sel); if (ix >= 0) { const g = $('avc').getContext('2d'); portrait(g, ix, sel.cls); }
     sel.boosts.forEach((b, i) => $('bb' + i).addEventListener('click', () => boostPress(i)));
   }
+  let chg = false;
   sel.boosts.forEach((b, i) => {
     const d = BOOST[b.id], el = $('bb' + i), st = b.left <= 0 ? 'закончилась' : b.cd > 0 ? 'ещё ' + Math.ceil(b.cd) + ' с' : (b.left !== Infinity ? '×' + b.left : 'готово');
-    const h = '<b>' + d.name + '</b><small>' + st + '</small>', cls = 'bb' + (G.tgt && G.tgt.idx === i ? ' tgt' : '');
-    if (el._h !== h) { el.innerHTML = h; el._h = h; } if (el._c !== cls) { el.className = cls; el._c = cls; } el.disabled = b.cd > 0 || b.left <= 0;
+    const h = (d.kind === 'target' ? SV('<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>') : SV('<path d="M12 3l8 17H4z" fill="currentColor"/>')) + '<span><b>' + d.name + '</b><small>' + st + '</small></span>', cls = 'chipo' + (G.tgt && G.tgt.idx === i ? ' tgt' : '');
+    if (el._h !== h) { el.innerHTML = h; el._h = h; chg = true; } if (el._c !== cls) { el.className = cls; el._c = cls; } el.disabled = b.cd > 0 || b.left <= 0;
   });
+  if (chg) sel.boosts.forEach((b, i) => fitChip($('bb' + i)));
 }
 function boostPress(i) {
   const s = G.sel; if (!s || !s.alive || G.over) return; const b = s.boosts[i]; if (!b) return; const d = BOOST[b.id];
@@ -457,6 +605,7 @@ function clampCam() { cam.z = Math.max(ZMIN, Math.min(ZMAX, cam.z)); const hw = 
 const toWorld = (sx, sy) => [(sx - W / 2) / cam.z + cam.x, (sy - VCY) / cam.z + cam.y];
 const scr = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
 function tapAt(wx, wy) {
+  if (G.bstTgt) { const ok = typeof bstPick === 'function' && bstPick(wx, wy); G.bstTgt = null; if (ok) spendBst('pont'); else say('Отменено: коснитесь самой преграды'); paintTray(); return; }
   if (G.tgt) { const { s: ts, idx } = G.tgt; if (useBoost(ts, idx, false, wx, wy)) { G.tgt = null; G.sel = null; overlayOn = false; } uiCards(); return; }
   const mine = alive(1).map(s => [s, Math.hypot(s.x - wx, s.y - 12 - wy)]).filter(([, d]) => d < 40).sort((a, b) => a[1] - b[1])[0];
   if (mine) { select(mine[0]); uiCards(); return; }
@@ -479,12 +628,44 @@ $('mini').addEventListener('pointerdown', e => { e.stopPropagation(); const r = 
 function easeCam() { if (cam.fx === undefined) return; cam.x += (cam.fx - cam.x) * 0.15; cam.y += (cam.fy - cam.y) * 0.15; clampCam(); if (Math.hypot(cam.fx - cam.x, cam.fy - cam.y) < 3) cam.fx = undefined; }
 for (let i = 0; i < 4; i++) $('rb' + i).addEventListener('click', () => { if (G.over || !started) return; const s = G.rome[i]; if (!s.alive) { say('Генерал ' + s.name + ' ранен'); return; } select(s); cam.fx = s.x; cam.fy = s.y - 80; uiCards(); });
 $('fast').addEventListener('click', () => { GSPEED = GSPEED >= 3 ? 1 : GSPEED + 1; $('fast').innerHTML = '⏩<small>×' + GSPEED + '</small>'; $('fast').classList.toggle('on', GSPEED > 1); SND.play('select'); });
-$('restart').addEventListener('click', () => { if (!EMBED) return restart(); if (G.over) return; const now = Date.now(); if (now - (window._ret || 0) < 3000) { G.over = true; report(2, true); } else { window._ret = now; say('Нажмите ⚑ ещё раз, чтобы отступить'); } });
+$('restart').addEventListener('click', () => { if (!EMBED) return restart(); if (G.over || !started) return; G.paused = true; $('giveup').hidden = false; });
+$('gyStay').addEventListener('click', () => { G.paused = false; $('giveup').hidden = true; });
+$('gyGo').addEventListener('click', () => { G.paused = false; $('giveup').hidden = true; if (G.over) return; G.over = true; report(2, true); });
 $('ovB').addEventListener('click', () => EMBED ? (G.winner && report(G.winner)) : restart());
 if (EMBED) { $('restart').textContent = '⚑'; $('restart').title = 'Отступить'; $('restart').setAttribute('aria-label', 'Отступить'); $('ovB').textContent = 'Дальше'; }
-$('helpOk').addEventListener('click', () => { $('help').hidden = true; started = true; SND.init(); });
+let TUT_WANT = !window.name.startsWith('legwar') && /[?&]tut\b/.test(location.search);
+let TUT_MAP = 'Это <b>поле боя</b>. Ваши отряды <b>красные</b>, враги <b>синие</b>. <b>Кольца</b> на карте — точки захвата, в лагере с палатками лечат раненых, а завалы и ворота открывают инженеры. Карту двигайте пальцем, масштаб — щипком.';
+let TUT_GOAL = 'Цель боя: захватите <b>точки</b> (в каждой +3 в резерв), а затем главную. Раненых лечит лагерь, но резерв ограничен, так что берегите отряды.';
+let TUT_GOAL_FIXED = false;
+let TUT_POINTS = () => G.points.filter(p => p.x > -500).map(p => ({ x: p.x, y: p.y, r: p.r }));
+const tutNote = i => { const ps = [...$('help').querySelectorAll(':scope > p')]; return ps[i] ? ps[i].innerHTML : ''; };   // the map's own notes from its rules pop-up
+const tutGoal = () => { const p = $('help').querySelector(':scope > p'); return !TUT_GOAL_FIXED && p && /^Цель/.test(p.textContent) ? p.innerHTML : TUT_GOAL; };
+function tutSteps() {
+  const ordersSquad = () => G.rome.find(s => s.alive && s.boosts.length);
+  return [
+    { text: TUT_MAP, btn: true },
+    { text: 'Коснитесь <b>портрета генерала</b> слева: время замедлится, отряд выделится. Значок в углу показывает класс войска.', target: () => $('rb0'), done: () => !!G.sel },
+    { text: '<b>Тёмным</b> закрашено то, куда не пройти, <b>жёлтая линия</b> — куда дойдёте за 5 секунд. Коснитесь места на карте, и отряд пойдёт; коснитесь врага, и он атакует.', point: [300, 560], done: () => !G.sel && G.rome.some(q => q.alive && q.path.length) },
+    { text: 'У выбранного отряда над бустами появляются его <b>особые приказы</b>: у каждого класса свои. Коснитесь этой полосы, чтобы продолжить.', target: () => $('boosts'), catch: true, skipIf: () => !ordersSquad(),
+      onEnter: () => { const q = ordersSquad(); if (q && G.sel !== q) select(q); uiCards(); }, onLeave: () => { G.sel = null; G.tgt = null; overlayOn = false; uiCards(); } },
+    { text: 'Внизу <b>бусты</b> из вашего запаса: они действуют на весь бой. Серая кнопка — запас кончился. Коснитесь лотка, чтобы продолжить.', target: () => $('tray'), catch: true, skipIf: () => !trayOn() },
+    { text: tutNote(2), btn: true, skipIf: () => !tutNote(2) },
+    { get text() { const n = TUT_POINTS().length; return tutGoal() + (n > 1 ? ' <b>Коснитесь подсвеченной точки</b>, чтобы перейти к следующей.' : n === 1 ? ' <b>Коснитесь подсвеченной точки</b>, чтобы закончить.' : ''); }, points: () => TUT_POINTS().map(p => ({ x: (p.x - cam.x) * cam.z + W / 2, y: (p.y - cam.y) * cam.z + VCY, r: p.r * cam.z, world: p })), btn: true, last: true,
+      onEnter: () => { const p = TUT_POINTS()[0]; if (p) { cam.fx = p.x; cam.fy = p.y; } } }
+  ];
+}
+function tutAuto() {   // the first time the tutorial takes the place of the rules pop-up
+  if (!TUT_WANT) return; $('help').hidden = true; started = true; addEventListener('pointerdown', () => SND.init(), { once: true }); tutStart();
+}
+function tutStart() {
+  if (!TUT_WANT) return; TUT_WANT = false;
+  Tutor.start(tutSteps(), { pause: v => { G.paused = v || !$('giveup').hidden; }, focus: p => { cam.fx = p.x; cam.fy = p.y; }, end: () => { if (EMBED) parent.postMessage({ legWar: 'tut' }, '*'); } });
+}
+$('helpOk').addEventListener('click', () => { $('help').hidden = true; started = true; SND.init(); tutStart(); });
 $('mus').addEventListener('click', () => { SND.toggleMusic(); $('mus').classList.toggle('off', !SND.isMus()); });
 $('snd').addEventListener('click', () => { SND.toggleSfx(); $('snd').classList.toggle('off', !SND.isSfx()); });
+// inside the game the music and sound switches live in its settings: hide the HUD buttons and follow the game's messages
+if (EMBED) { $('mus').style.display = $('snd').style.display = 'none'; addEventListener('message', e => { const m = e.data; if (e.source !== parent || !m || m.legWar !== 'audio') return; if (SND.isMus() !== !!m.music) SND.toggleMusic(); if (SND.isSfx() !== !!m.sfx) SND.toggleSfx(); }); }
 document.addEventListener('visibilitychange', () => SND.visible(!document.hidden));
 function renderSlots() { $('slots').innerHTML = slots.map((c, i) => '<button type="button" data-i="' + i + '">' + GEN[i] + ' · ' + CLS[c].name + '<small>' + CLS[c].hint + '</small></button>').join(''); for (const b of $('slots').children) b.addEventListener('click', () => { const i = +b.dataset.i; if (EMBED) return; slots[i] = ORDER_ALL[(ORDER_ALL.indexOf(slots[i]) + 1) % ORDER_ALL.length]; renderSlots(); newBattle(); }); }
 function restart() { newBattle(); $('over').hidden = true; $('help').hidden = true; started = true; SND.init(); }

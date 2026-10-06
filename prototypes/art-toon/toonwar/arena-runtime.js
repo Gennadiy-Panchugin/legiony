@@ -99,11 +99,11 @@ if (MAP.waves) (function () {
   const board = $('board'), N = MAP.waves.list.length;
   $('cRes').hidden = true;   // no reserve in the arena
   const pips = document.createElement('div');
-  pips.style.cssText = 'position:absolute;left:50%;top:80px;transform:translateX(-50%);display:flex;gap:7px;padding:6px 12px;border-radius:17px;background:rgba(40,24,14,.92);border:2.5px solid #f2c14a;z-index:3;pointer-events:none';
-  board.appendChild(pips);
+  pips.style.cssText = 'display:flex;gap:7px;padding:6px 12px;border-radius:17px;background:rgba(40,24,14,.92);border:2.5px solid #f2c14a';
+  // (the pips are not shown: the top bar's chip counts the waves)
   const call = document.createElement('button');
-  call.type = 'button'; call.textContent = 'Позвать волну'; call.className = 'bb';
-  call.style.cssText = 'position:absolute;left:14px;bottom:104px;width:170px;height:48px;flex:none;z-index:3;font:400 18px "Lilita One",sans-serif';
+  call.type = 'button'; call.className = 'cw'; call.title = 'Позвать следующую волну сразу'; call.setAttribute('aria-label', 'Позвать следующую волну');
+  call.innerHTML = '<span class="cwi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7 3c0 5 3 6.5 5 9-2 2.5-5 4-5 9M17 3c0 5-3 6.5-5 9 2 2.5 5 4 5 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 18.5h5L12 15.5z" fill="currentColor"/></svg></span><em id="cwn"></em>';
   call.onclick = () => { if (G.aw && G.aw.i + 1 < N && !G.over) { G.aw.call = true; } else if (!G.aw) { G.aw = { i: -1, t: 0, th: 0, call: true }; } };
   board.appendChild(call);
   const hint = $('bhint');
@@ -112,6 +112,7 @@ if (MAP.waves) (function () {
     pips.innerHTML = MAP.waves.list.map((w, i) => { const done = i < cur - (alive(2).some(q => q.wave) ? 1 : 0), now = i === cur - 1 && alive(2).some(q => q.wave) || (!alive(2).some(q => q.wave) && i === cur);
       return '<span style="width:20px;height:20px;border-radius:50%;border:2.5px solid #2b1a10;display:flex;align-items:center;justify-content:center;font:400 12px \'Lilita One\',sans-serif;background:' + (done ? '#7ee05a' : now ? '#ffcc33' : '#4a3a2c') + ';color:' + (done ? '#1e3a10' : now ? '#3a1e08' : '#c9b08a') + '">' + (done ? '✓' : boss(i) ? '★' : i + 1) + '</span>'; }).join('');
     call.hidden = !!(G.over || !started) || (A && A.i + 1 >= N);
+    { const W = MAP.waves, fighting = alive(2).some(q => q.wave); let pct = 100, txt = '⚔'; if (!fighting) { const total = A && A.i >= 0 ? W.pause : W.first, left = A ? Math.max(0, A.t) : W.first; pct = 100 * (1 - left / total); txt = String(Math.ceil(left)); } call.style.setProperty('--p', pct.toFixed(1)); $('cwn').textContent = txt; }
     if (!G.sel) hint.textContent = arenaNextText();
   }, 200);
 })();
@@ -136,7 +137,7 @@ function arenaSky(t) {
     ctx.globalCompositeOperation = 'lighter';
     const lamp = (x, y, r, a) => { const lg = ctx.createRadialGradient(x, y, 6, x, y, r); lg.addColorStop(0, 'rgba(255,190,90,' + a + ')'); lg.addColorStop(1, 'rgba(255,190,90,0)'); ctx.fillStyle = lg; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
     for (const [gx, gy] of [[AR.cx, AR.cy - AR.ry + 30], [AR.cx, AR.cy + AR.ry - 30], [AR.cx - AR.rx + 30, AR.cy], [AR.cx + AR.rx - 30, AR.cy]]) lamp(gx, gy, 230 + Math.sin(t * 9 + gx) * 8, .55);
-    for (const q of alive(1)) lamp(q.x, q.y, 150, .38);
+    for (const o of ARENA_OBST) if (o[0] === 'cage') { lamp(o[1], o[2] - 20, 170 + Math.sin(t * 7 + o[1]) * 6, .5); }   // light hangs over the cages
     ctx.globalCompositeOperation = 'source-over';
     for (const [gx, gy] of [[AR.cx - 150, AR.cy - AR.ry + 6], [AR.cx + 150, AR.cy - AR.ry + 6], [AR.cx - 150, AR.cy + AR.ry - 6], [AR.cx + 150, AR.cy + AR.ry - 6]]) {   // torches
       ctx.beginPath(); ctx.moveTo(gx, gy + 30); ctx.lineTo(gx, gy); ctx.lineWidth = 8; ctx.strokeStyle = OL; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#8a5a30'; ctx.stroke();

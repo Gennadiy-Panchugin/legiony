@@ -48,7 +48,7 @@ swap('  const hi = mask(gg => { poly(gg, FORT_P); poly(gg, RIGHT_P); poly(gg, LE
 })();
 `);
 rep('const TY = new Uint8Array(NN).fill(T.LOW), ROADM = new Uint8Array(NN), CAMPM = new Uint8Array(NN);', 'const TY = new Uint8Array(NN).fill(T.LOW), ROADM = new Uint8Array(NN), CAMPM = new Uint8Array(NN), TRAILM = new Uint8Array(NN), TUNM = new Uint8Array(NN);\nconst inTun = s => TUNM[cellOf(s.x, s.y)] === 1;');
-rep('for (const e of live) { if (e.side === a.side || e.hiddenA) continue;', 'for (const e of live) { if (e.side === a.side || e.hiddenA || inTun(a) !== inTun(e)) continue;');
+rep('for (const e of live) { if (e.side === a.side || e.hiddenA || noCav(a, e)) continue;', 'for (const e of live) { if (e.side === a.side || e.hiddenA || noCav(a, e) || inTun(a) !== inTun(e)) continue;');
 rep('for (const e of live) if (e.side === 2 && e.alive && Math.hypot(e.x - rn.x, e.y - rn.y) < rn.r)', 'for (const e of live) if (e.side === 2 && e.alive && !inTun(e) && Math.hypot(e.x - rn.x, e.y - rn.y) < rn.r)');
 rep('const MULc = c => { const t = TY[c]; return ', 'const MULc = c => { const t = TY[c]; return TRAILM[c] ? 2.4 : ');
 
@@ -112,6 +112,9 @@ function drawBarricade() {
   if (!OB.open && OB.prog > 0) { rr(ctx, OB.x - 40, OB.y - 92, 80, 9, 4.5); ctx.fillStyle = OL; ctx.fill(); rr(ctx, OB.x - 38, OB.y - 90, 76 * OB.prog / OB.need, 5, 2.5); ctx.fillStyle = '#ffcc33'; ctx.fill(); }
 }
 `);
+// the hired builders raise the portcullis at once (the only obstacle on this map)
+rep('function useBst(id) {', String.raw`function bstPont() { if (OB.open) { say('Решётка уже поднята'); return false; } OB.open = true; OB.prog = OB.need; SND.play('crash', OB.x); G.fx.push({ x: OB.x, y: OB.y, t: 0.9, big: true }); say('Вольные строители подняли решётку'); if (G.sel) paintOverlay(G.sel); return true; }
+function useBst(id) {`);
 rep('const cam = { x: 450, y: 1180, z: 1 };', 'const cam = { x: 450, y: 1300, z: 1 };');
 
 // ---- assemble with the same page as war.html, with Tibur's title and briefing
